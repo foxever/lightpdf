@@ -1,0 +1,54 @@
+[package]
+name = "lightpdf"
+version = "0.1.0"
+edition = "2021"
+authors = ["Developer <dev@example.com>"]
+description = "A lightweight, cross-platform PDF reader built with Rust and GPUI"
+license = "MIT"
+repository = "https://github.com/example/lightpdf"
+
+[dependencies]
+gpui = { version = "0.2.2", default-features = false }
+pdfium-render = "0.8"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+dirs-next = "2.0.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+encoding_rs = "0.8.34"
+thiserror = "1.0"
+anyhow = "1.0"
+tokio = { version = "1.0", features = ["fs", "rt-multi-thread"] }
+crossbeam = "0.8.4"
+path-slash = "0.2.1"
+chrono = { version = "0.4", features = ["serde"] }
+env_logger = "0.11"
+log = "0.4"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+gpui = { version = "0.2.2", default-features = false, features = ["font-kit"] }
+core-text = "=21.0.0"
+objc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gpui = { version = "0.2.2", default-features = false, features = ["font-kit"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+gpui = { version = "0.2.2", default-features = false, features = ["font-kit", "windows-manifest"] }
+winapi = { version = "0.3.9", features = ["winuser", "commdlg"] }
+
+[dev-dependencies]
+tempfile = "3.0"
+
+[[bin]]
+name = "lightpdf"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

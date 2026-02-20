@@ -1,0 +1,28 @@
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_data/
+*.pdf
+
+# Build artifacts
+/dist/
+/build/
+*.msi
+*.dmg
+*.deb
+*.AppImage
