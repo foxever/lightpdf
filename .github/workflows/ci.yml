@@ -49,6 +49,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install zip (Windows)
+        if: startsWith(matrix.os, 'windows')
+        shell: pwsh
+        run: |
+          choco install zip -y
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
