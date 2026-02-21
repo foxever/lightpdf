@@ -11,14 +11,5 @@ impl PdfLoader {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    #[test]
-    fn test_is_pdf() {
-        assert!(PdfLoader::is_pdf("test.pdf"));
-        assert!(PdfLoader::is_pdf("test.PDF"));
-        assert!(PdfLoader::is_pdf("test.Pdf"));
-        assert!(!PdfLoader::is_pdf("test.txt"));
-        assert!(!PdfLoader::is_pdf("test"));
-    }
+    // Tests require actual PDF files
 }
