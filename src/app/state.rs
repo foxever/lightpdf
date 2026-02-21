@@ -197,6 +197,16 @@ impl AppState {
         self.config.lock().unwrap().scroll_mode
     }
 
+    pub fn get_recent_files(&self) -> Vec<String> {
+        self.config.lock().unwrap().recent_files.clone()
+    }
+
+    pub fn remove_from_recent(&self, path: &str) {
+        let mut config = self.config.lock().unwrap();
+        config.recent_files.retain(|p| p != path);
+        self.save_config(&config);
+    }
+
     fn load_config() -> AppConfig {
         let config_path = crate::utils::path::get_config_path();
         if config_path.exists() {

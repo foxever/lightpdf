@@ -622,6 +622,7 @@ impl PdfReaderApp {
                 .and_then(|t| t.outline_items.clone())
         });
         let i18n = self.state.get_i18n();
+        let has_doc = active_tab_id.is_some();
 
         div()
             .w(px(200.0))
@@ -645,11 +646,15 @@ impl PdfReaderApp {
                         div()
                             .text_size(px(11.0))
                             .text_color(colors.text)
-                            .child(i18n.t("sidebar_outline")),
+                            .child(if has_doc {
+                                i18n.t("sidebar_outline")
+                            } else {
+                                i18n.t("sidebar_recent_files")
+                            }),
                     ),
             )
-            .child(
-                div().flex_1().p_1().child(match outline {
+            .child(div().flex_1().p_1().child(if has_doc {
+                match outline {
                     Some(items) if !items.is_empty() => self
                         .render_outline_items(&items, colors, cx, 0)
                         .into_any_element(),
@@ -658,8 +663,62 @@ impl PdfReaderApp {
                         .text_color(colors.text_secondary)
                         .child(i18n.t("pdf_no_outline"))
                         .into_any_element(),
-                }),
-            )
+                }
+            } else {
+                self.render_recent_files(colors, cx).into_any_element()
+            }))
+    }
+
+    fn render_recent_files(&self, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
+        let recent_files = self.state.get_recent_files();
+        let i18n = self.state.get_i18n();
+
+        if recent_files.is_empty() {
+            return div()
+                .text_size(px(10.0))
+                .text_color(colors.text_secondary)
+                .child(i18n.t("no_recent_files"))
+                .into_any_element();
+        }
+
+        let mut container = div().flex().flex_col();
+
+        for file_path in recent_files {
+            let file_name = std::path::Path::new(&file_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(&file_path)
+                .to_string();
+            let path_clone = file_path.clone();
+
+            container = container.child(
+                div()
+                    .px_2()
+                    .py(px(4.0))
+                    .cursor_pointer()
+                    .hover(|this| this.bg(colors.background_tertiary))
+                    .child(
+                        div()
+                            .text_size(px(10.0))
+                            .text_color(colors.text)
+                            .child(file_name),
+                    )
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(move |this, _event, _window, cx| {
+                            let path = std::path::PathBuf::from(&path_clone);
+                            if path.exists() {
+                                this.open_file_in_new_tab(path, cx);
+                            } else {
+                                this.state.remove_from_recent(&path_clone);
+                                cx.notify();
+                            }
+                        }),
+                    ),
+            );
+        }
+
+        container.into_any_element()
     }
 
     fn render_outline_items(
