@@ -1,3 +1,5 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 use std::sync::Arc;
 
 mod app;
@@ -25,7 +27,7 @@ fn main() {
         cx.on_action(|_: &Quit, cx: &mut App| {
             cx.quit();
         });
-        
+
         let app_state = Arc::new(app::state::AppState::new());
         let language = app_state.get_language();
         
