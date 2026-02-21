@@ -79,11 +79,31 @@ make build-all    # All platforms
 - [x] Full-screen mode
 
 ### TODO
-- [ ] Bookmarks
-- [ ] Recent files
-- [ ] Drag & drop
+
+#### Core Features
+- [ ] Search (text search within PDF)
+- [ ] Bookmarks (save page positions)
+- [ ] Recent files (quick access)
+- [ ] Drag & drop (open files)
 - [ ] Print support
-- [ ] Search
+
+#### Navigation
+- [ ] Page thumbnails sidebar
+- [ ] Go to page (jump to specific page)
+- [ ] Previous/Next document
+
+#### Display
+- [ ] Fit width/height/page modes
+- [ ] Continuous scroll mode
+- [ ] Presentation mode
+- [ ] Custom zoom levels
+
+#### Advanced
+- [ ] Text selection and copy
+- [ ] Annotation support
+- [ ] Form filling
+- [ ] Digital signatures
+- [ ] PDF encryption/decryption
 
 ## License
 
