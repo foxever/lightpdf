@@ -51,6 +51,7 @@ fn main() {
             gpui::WindowOptions {
                 titlebar: Some(gpui::TitlebarOptions {
                     title: Some("LightPDF".into()),
+                    appears_transparent: true,
                     ..Default::default()
                 }),
                 window_bounds: Some(gpui::WindowBounds::Windowed(

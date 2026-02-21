@@ -96,8 +96,23 @@ impl PdfDocument {
             .map_err(|e| PdfError::RenderError(format!("Failed to render page: {}", e)))?;
 
         let data = bitmap.as_rgba_bytes().to_vec();
+        
+        let width = bitmap.width() as u32;
+        let height = bitmap.height() as u32;
+        
+        let mut rgba_data = Vec::with_capacity(data.len());
+        for chunk in data.chunks_exact(4) {
+            let b = chunk[0];
+            let g = chunk[1];
+            let r = chunk[2];
+            let a = chunk[3];
+            rgba_data.push(r);
+            rgba_data.push(g);
+            rgba_data.push(b);
+            rgba_data.push(a);
+        }
 
-        Ok((data, bitmap.width() as u32, bitmap.height() as u32))
+        Ok((rgba_data, width, height))
     }
 
     pub fn get_page_size(&self, page_num: usize) -> Result<(f32, f32)> {
