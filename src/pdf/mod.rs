@@ -250,8 +250,3 @@ pub struct SearchResult {
     pub page: usize,
     pub preview: String,
 }
-
-#[cfg(test)]
-mod tests {
-    // Tests require actual PDF files
-}

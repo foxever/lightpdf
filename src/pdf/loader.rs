@@ -8,8 +8,3 @@ impl PdfLoader {
         PdfDocument::open(path)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    // Tests require actual PDF files
-}
