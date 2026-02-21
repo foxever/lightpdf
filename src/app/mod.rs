@@ -658,11 +658,7 @@ impl PdfReaderApp {
                     Some(items) if !items.is_empty() => self
                         .render_outline_items(&items, colors, cx, 0)
                         .into_any_element(),
-                    _ => div()
-                        .text_size(px(10.0))
-                        .text_color(colors.text_secondary)
-                        .child(i18n.t("pdf_no_outline"))
-                        .into_any_element(),
+                    _ => self.render_page_list(colors, cx).into_any_element(),
                 }
             } else {
                 self.render_recent_files(colors, cx).into_any_element()
@@ -770,6 +766,55 @@ impl PdfReaderApp {
         }
 
         container
+    }
+
+    fn render_page_list(&self, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
+        let i18n = self.state.get_i18n();
+        let page_count = self
+            .state
+            .get_active_tab_id()
+            .and_then(|id| self.state.tabs.get_tab(id))
+            .map(|t| t.page_count)
+            .unwrap_or(0);
+
+        if page_count == 0 {
+            return div()
+                .text_size(px(10.0))
+                .text_color(colors.text_secondary)
+                .child(i18n.t("pdf_no_outline"))
+                .into_any_element();
+        }
+
+        let mut container = div().flex().flex_col();
+
+        for page_num in 0..page_count {
+            let page_num_clone = page_num;
+            container = container.child(
+                div()
+                    .px_2()
+                    .py(px(4.0))
+                    .cursor_pointer()
+                    .hover(|this| this.bg(colors.background_tertiary))
+                    .child(
+                        div()
+                            .text_size(px(10.0))
+                            .text_color(colors.text)
+                            .child(format!("{} {}", i18n.t("page_label"), page_num_clone + 1)),
+                    )
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(move |this, _event, _window, cx| {
+                            if let Some(tab_id) = this.state.get_active_tab_id() {
+                                let _ = this.state.navigate_to_page(page_num_clone);
+                                this.render_current_tab_page(tab_id, cx);
+                                cx.notify();
+                            }
+                        }),
+                    ),
+            );
+        }
+
+        container.into_any_element()
     }
 
     fn render_pdf_view(
@@ -910,22 +955,25 @@ impl PdfReaderApp {
         _cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let i18n = self.state.get_i18n();
-        let (page_info, zoom_info, file_name) = if let Some(tab_id) = active_tab_id {
+        let (current_page, page_count, zoom_info, file_name) = if let Some(tab_id) = active_tab_id {
             if let Some(tab) = self.state.tabs.get_tab(tab_id) {
                 let file_name = tab.file_name();
                 (
-                    format!("{} / {}", tab.current_page + 1, tab.page_count),
+                    tab.current_page + 1,
+                    tab.page_count,
                     format!("{:.0}%", tab.zoom * 100.0),
                     file_name,
                 )
             } else {
-                (String::new(), String::new(), String::new())
+                (0, 0, String::new(), String::new())
             }
         } else {
-            (String::new(), String::new(), String::new())
+            (0, 0, String::new(), String::new())
         };
 
-        let has_doc = !page_info.is_empty();
+        let has_doc = page_count > 0;
+        let current_page_clone = current_page;
+        let page_count_clone = page_count;
 
         div()
             .h(px(20.0))
@@ -953,7 +1001,11 @@ impl PdfReaderApp {
                 div()
                     .text_size(px(10.0))
                     .text_color(colors.text)
-                    .child(if has_doc { page_info } else { String::new() }),
+                    .child(if has_doc {
+                        format!("{} / {}", current_page_clone, page_count_clone)
+                    } else {
+                        String::new()
+                    }),
             )
             .child(
                 div()
