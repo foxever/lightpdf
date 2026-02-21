@@ -274,6 +274,7 @@ impl Render for PdfReaderApp {
             .child(
                 div()
                     .flex_1()
+                    .overflow_hidden()
                     .flex()
                     .flex_row()
                     .child(if self.show_sidebar && active_tab_id.is_some() {
@@ -396,9 +397,9 @@ impl PdfReaderApp {
 
     fn render_toolbar(&self, has_doc: bool, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.state.get_theme();
-        let theme_emoji = match theme {
-            crate::theme::Theme::Light => "🌙",
-            crate::theme::Theme::Dark => "☀️",
+        let (theme_emoji, theme_color) = match theme {
+            crate::theme::Theme::Light => ("🌙", colors.moon_color),
+            crate::theme::Theme::Dark => ("☀️", colors.sun_color),
         };
 
         let language = self.state.get_language();
@@ -408,7 +409,6 @@ impl PdfReaderApp {
             crate::i18n::Language::Spanish => "🇪🇸",
         };
 
-        let show_menu = self.show_language_menu;
         let sidebar_emoji = if self.show_sidebar { "📑" } else { "📖" };
 
         div()
@@ -489,7 +489,7 @@ impl PdfReaderApp {
                 };
                 this.set_language(next_lang, cx);
             })))
-            .child(toolbar_btn(theme_emoji, colors, cx.listener(|this, _event, _window, cx| {
+            .child(toolbar_btn_with_color(theme_emoji, colors, theme_color, cx.listener(|this, _event, _window, cx| {
                 this.toggle_theme(cx);
             })))
     }
@@ -616,14 +616,16 @@ impl PdfReaderApp {
                     
                     return div()
                         .flex_1()
+                        .overflow_hidden()
                         .bg(colors.pdf_view)
                         .flex()
                         .items_center()
                         .justify_center()
                         .child(
                             img(render_image.clone())
-                                .w(px(width as f32))
-                                .h(px(height as f32))
+                                .block()
+                                .max_w(px(width as f32))
+                                .max_h(px(height as f32))
                         )
                         .into_any_element();
                 }
