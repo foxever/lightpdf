@@ -5,16 +5,18 @@ use image::RgbaImage;
 use crate::theme::ThemeColors;
 
 pub mod state;
+pub mod tabs;
+pub mod menu;
 
 use state::AppState;
+use tabs::Tab;
+use menu::*;
 
 pub struct PdfReaderApp {
     state: Arc<AppState>,
     show_sidebar: bool,
-    current_page_image: Option<Arc<RenderImage>>,
-    page_dimensions: Option<(u32, u32)>,
     show_language_menu: bool,
-    outline_items: Option<Vec<crate::pdf::OutlineItem>>,
+    window: Option<WeakEntity<Self>>,
 }
 
 impl PdfReaderApp {
@@ -25,42 +27,78 @@ impl PdfReaderApp {
         Self {
             state,
             show_sidebar: false,
-            current_page_image: None,
-            page_dimensions: None,
             show_language_menu: false,
-            outline_items: None,
+            window: None,
         }
     }
 
-    pub fn open_file(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
-        let path_str = path.to_string_lossy().to_string();
-        log::info!("Opening file: {}", path_str);
-
-        if let Err(e) = self.state.open_file(path) {
-            log::error!("Failed to open PDF: {}", e);
-        } else {
-            log::info!("PDF opened successfully! Rendering current page...");
-            
-            // Load outline
-            if let Some(pdf_guard) = self.state.get_pdf_doc() {
-                if let Some(ref pdf_doc) = *pdf_guard {
-                    match pdf_doc.get_outline() {
-                        Ok(outline) => {
-                            self.outline_items = Some(outline);
-                        },
-                        Err(e) => {
-                            log::warn!("Failed to load outline: {}", e);
-                            self.outline_items = None;
-                        }
+    fn fit_width(&mut self, cx: &mut Context<Self>) {
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            if let Some(tab) = self.state.tabs.get_tab(tab_id) {
+                if let Some(ref pdf_doc) = tab.doc {
+                    let current_page = tab.current_page;
+                    if let Ok((width, _)) = pdf_doc.get_page_size(current_page) {
+                        let target_width = 800.0;
+                        let zoom = target_width / width;
+                        self.state.update_active_tab(|tab| {
+                            tab.zoom = zoom.clamp(0.5, 3.0);
+                        });
+                        self.render_current_tab_page(tab_id, cx);
+                        cx.notify();
                     }
                 }
             }
-            
-            self.render_current_page(cx);
-            self.show_sidebar = true;
-            cx.notify();
-            log::info!("Rendering done!");
         }
+    }
+
+    fn fit_page(&mut self, cx: &mut Context<Self>) {
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            if let Some(tab) = self.state.tabs.get_tab(tab_id) {
+                if let Some(ref pdf_doc) = tab.doc {
+                    let current_page = tab.current_page;
+                    if let Ok((width, height)) = pdf_doc.get_page_size(current_page) {
+                        let target_width = 600.0;
+                        let target_height = 800.0;
+                        let zoom_width = target_width / width;
+                        let zoom_height = target_height / height;
+                        let zoom = zoom_width.min(zoom_height);
+                        self.state.update_active_tab(|tab| {
+                            tab.zoom = zoom.clamp(0.5, 3.0);
+                        });
+                        self.render_current_tab_page(tab_id, cx);
+                        cx.notify();
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn open_file_in_new_tab(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
+        let path_str = path.to_string_lossy().to_string();
+        log::info!("Opening file in new tab: {}", path_str);
+
+        match self.state.open_file_new_tab(path) {
+            Ok(tab_id) => {
+                log::info!("File opened in tab {}", tab_id);
+                self.show_sidebar = true;
+                self.render_current_tab_page(tab_id, cx);
+                cx.notify();
+            }
+            Err(e) => {
+                log::error!("Failed to open PDF: {}", e);
+            }
+        }
+    }
+
+    pub fn close_tab(&mut self, tab_id: usize, cx: &mut Context<Self>) {
+        self.state.close_tab(tab_id);
+        cx.notify();
+    }
+
+    pub fn switch_tab(&mut self, tab_id: usize, cx: &mut Context<Self>) {
+        self.state.set_active_tab(tab_id);
+        self.render_current_tab_page(tab_id, cx);
+        cx.notify();
     }
 
     fn open_file_dialog(&mut self, cx: &mut Context<Self>) {
@@ -78,42 +116,21 @@ impl PdfReaderApp {
                 Ok(Ok(Some(paths))) => {
                     if let Some(path) = paths.into_iter().next() {
                         this.update(cx, |this: &mut Self, cx: &mut Context<Self>| {
-                            this.open_file(path, cx);
+                            this.open_file_in_new_tab(path, cx);
                         }).ok();
                     }
                 }
-                Ok(Ok(None)) => {
-                }
-                Ok(Err(e)) => {
-                    log::error!("Failed to select file: {}", e);
-                }
-                Err(e) => {
-                    log::error!("Failed to open file dialog: {}", e);
-                }
+                _ => {}
             }
         }).detach();
     }
 
-    fn render_current_page(&mut self, _cx: &mut Context<Self>) {
-        if let Some(pdf_guard) = self.state.get_pdf_doc() {
-            if let Some(ref pdf_doc) = *pdf_guard {
-                let current_page = self.state.current_doc.lock()
-                    .unwrap()
-                    .as_ref()
-                    .map(|d| d.current_page)
-                    .unwrap_or(0);
-
-                let zoom = self.state.current_doc.lock()
-                    .unwrap()
-                    .as_ref()
-                    .map(|d| d.zoom)
-                    .unwrap_or(1.0);
-
-                let rotation = self.state.current_doc.lock()
-                    .unwrap()
-                    .as_ref()
-                    .map(|d| d.rotation)
-                    .unwrap_or(0);
+    fn render_current_tab_page(&mut self, tab_id: usize, _cx: &mut Context<Self>) {
+        if let Some(tab) = self.state.tabs.get_tab(tab_id) {
+            if let Some(ref pdf_doc) = tab.doc {
+                let current_page = tab.current_page;
+                let zoom = tab.zoom;
+                let rotation = tab.rotation;
 
                 match pdf_doc.render_page(current_page, zoom) {
                     Ok((data, pixmap_width, pixmap_height)) => {
@@ -142,17 +159,17 @@ impl PdfReaderApp {
                                 _ => {},
                             }
 
-                            self.page_dimensions = Some((scaled_width, scaled_height));
-
-                            log::info!("Rendering page: width={}, height={}, data len={}, expected len={}", 
-                                scaled_width, scaled_height, rgba.len(), scaled_width * scaled_height * 4);
-
+                            let page_dimensions = Some((scaled_width, scaled_height));
                             let frame = image::Frame::new(rgba.clone());
                             let render_image = RenderImage::new([frame]);
-                            self.current_page_image = Some(Arc::new(render_image));
-                            log::info!("Successfully created page image!");
-                        } else {
-                            log::error!("Failed to create RgbaImage");
+                            let page_image = Some(Arc::new(render_image));
+                            
+                            self.state.tabs.update_tab(tab_id, |tab| {
+                                tab.page_dimensions = page_dimensions;
+                                tab.page_image = page_image;
+                            });
+                            
+                            log::info!("Successfully rendered page for tab {}", tab_id);
                         }
                     }
                     Err(e) => {
@@ -164,51 +181,59 @@ impl PdfReaderApp {
     }
 
     fn next_page(&mut self, cx: &mut Context<Self>) {
-        let _ = self.state.next_page();
-        self.render_current_page(cx);
-        cx.notify();
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            let _ = self.state.next_page();
+            self.render_current_tab_page(tab_id, cx);
+            cx.notify();
+        }
     }
 
     fn prev_page(&mut self, cx: &mut Context<Self>) {
-        let _ = self.state.prev_page();
-        self.render_current_page(cx);
-        cx.notify();
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            let _ = self.state.prev_page();
+            self.render_current_tab_page(tab_id, cx);
+            cx.notify();
+        }
     }
 
     fn zoom_in(&mut self, cx: &mut Context<Self>) {
-        self.state.zoom_in();
-        self.render_current_page(cx);
-        cx.notify();
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            self.state.zoom_in();
+            self.render_current_tab_page(tab_id, cx);
+            cx.notify();
+        }
     }
 
     fn zoom_out(&mut self, cx: &mut Context<Self>) {
-        self.state.zoom_out();
-        self.render_current_page(cx);
-        cx.notify();
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            self.state.zoom_out();
+            self.render_current_tab_page(tab_id, cx);
+            cx.notify();
+        }
     }
 
     fn reset_zoom(&mut self, cx: &mut Context<Self>) {
-        self.state.reset_zoom();
-        self.render_current_page(cx);
-        cx.notify();
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            self.state.reset_zoom();
+            self.render_current_tab_page(tab_id, cx);
+            cx.notify();
+        }
     }
 
     fn rotate_clockwise(&mut self, cx: &mut Context<Self>) {
-        self.state.rotate_clockwise();
-        self.render_current_page(cx);
-        cx.notify();
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            self.state.rotate_clockwise();
+            self.render_current_tab_page(tab_id, cx);
+            cx.notify();
+        }
     }
 
     fn rotate_counter_clockwise(&mut self, cx: &mut Context<Self>) {
-        self.state.rotate_counter_clockwise();
-        self.render_current_page(cx);
-        cx.notify();
-    }
-
-    fn go_to_page(&mut self, page: usize, cx: &mut Context<Self>) {
-        let _ = self.state.navigate_to_page(page);
-        self.render_current_page(cx);
-        cx.notify();
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            self.state.rotate_counter_clockwise();
+            self.render_current_tab_page(tab_id, cx);
+            cx.notify();
+        }
     }
 
     fn toggle_theme(&mut self, cx: &mut Context<Self>) {
@@ -234,35 +259,109 @@ impl PdfReaderApp {
 
 impl Render for PdfReaderApp {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let has_doc = self.state.current_doc.lock().unwrap().is_some();
         let theme = self.state.get_theme();
         let colors = ThemeColors::for_theme(theme);
+        let tabs = self.state.get_all_tabs();
+        let active_tab_id = self.state.get_active_tab_id();
 
         div()
             .size_full()
             .flex()
             .flex_col()
             .bg(colors.background)
-            .child(self.render_toolbar(colors, cx))
+            .child(self.render_tab_bar(&tabs, active_tab_id, colors, cx))
+            .child(self.render_toolbar(active_tab_id.is_some(), colors, cx))
             .child(
                 div()
                     .flex_1()
                     .flex()
                     .flex_row()
-                    .child(if self.show_sidebar && has_doc {
-                        self.render_sidebar(colors, cx).into_any_element()
+                    .child(if self.show_sidebar && active_tab_id.is_some() {
+                        self.render_sidebar(active_tab_id, colors, cx).into_any_element()
                     } else {
                         div().into_any_element()
                     })
-                    .child(self.render_pdf_view(colors, cx))
+                    .child(self.render_pdf_view(active_tab_id, colors, cx))
             )
-            .child(self.render_status_bar(colors, cx))
+            .child(self.render_status_bar(active_tab_id, colors, cx))
     }
 }
 
 impl PdfReaderApp {
-    fn render_toolbar(&self, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
-        let has_doc = self.state.current_doc.lock().unwrap().is_some();
+    fn render_tab_bar(
+        &self,
+        tabs: &[Tab],
+        active_tab_id: Option<usize>,
+        colors: ThemeColors,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let mut tab_bar = div()
+            .h(px(30.0))
+            .w_full()
+            .flex()
+            .flex_row()
+            .items_center()
+            .bg(colors.toolbar)
+            .border_b_1()
+            .border_color(colors.border);
+
+        for tab in tabs {
+            let is_active = Some(tab.id) == active_tab_id;
+            tab_bar = tab_bar.child(
+                div()
+                    .h(px(28.0))
+                    .px_3()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .bg(if is_active { colors.background_tertiary } else { colors.background_secondary })
+                    .border_r_1()
+                    .border_color(colors.border)
+                    .cursor_pointer()
+                    .child(
+                        div()
+                            .text_size(px(11.0))
+                            .text_color(colors.text)
+                            .child(tab.file_name())
+                    )
+                    .child(
+                        div()
+                            .px_1()
+                            .text_size(px(10.0))
+                            .text_color(colors.text_secondary)
+                            .cursor_pointer()
+                            .child("×")
+                            .on_mouse_down(MouseButton::Left, cx.listener({
+                                let tab_id = tab.id;
+                                move |this, _event, _window, cx| {
+                                    this.close_tab(tab_id, cx);
+                                }
+                            }))
+                    )
+                    .on_mouse_down(MouseButton::Left, cx.listener({
+                        let tab_id = tab.id;
+                        move |this, _event, _window, cx| {
+                            this.switch_tab(tab_id, cx);
+                        }
+                    }))
+            );
+        }
+
+        tab_bar.child(
+            div()
+                .h(px(28.0))
+                .px_3()
+                .flex()
+                .items_center()
+                .cursor_pointer()
+                .child("+")
+                .on_mouse_down(MouseButton::Left, cx.listener(|this, _event, _window, cx| {
+                    this.open_file_dialog(cx);
+                }))
+        )
+    }
+
+    fn render_toolbar(&self, has_doc: bool, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.state.get_theme();
         let theme_emoji = match theme {
             crate::theme::Theme::Light => "☾",
@@ -277,9 +376,10 @@ impl PdfReaderApp {
         };
 
         let show_menu = self.show_language_menu;
+        let sidebar_emoji = if self.show_sidebar { "📑" } else { "📖" };
 
         div()
-            .h(px(28.0))
+            .h(px(32.0))
             .w_full()
             .flex()
             .flex_row()
@@ -292,26 +392,59 @@ impl PdfReaderApp {
             .child(toolbar_btn("📂", colors, cx.listener(|this, _event, _window, cx| {
                 this.open_file_dialog(cx);
             })))
-            .child(div().w(px(8.0)))
+            .child(div().w(px(4.0)))
             .child(toolbar_btn_enabled("◀", has_doc, colors, cx.listener(|this, _event, _window, cx| {
                 this.prev_page(cx);
             })))
             .child(toolbar_btn_enabled("▶", has_doc, colors, cx.listener(|this, _event, _window, cx| {
                 this.next_page(cx);
             })))
-            .child(div().w(px(8.0)))
+            .child(div().w(px(4.0)))
+            .child(toolbar_btn_enabled("⏮", has_doc, colors, cx.listener(|this, _event, _window, cx| {
+                if let Some(tab_id) = this.state.get_active_tab_id() {
+                    this.state.update_active_tab(|tab| {
+                        tab.current_page = 0;
+                    });
+                    this.render_current_tab_page(tab_id, cx);
+                    cx.notify();
+                }
+            })))
+            .child(toolbar_btn_enabled("⏭", has_doc, colors, cx.listener(|this, _event, _window, cx| {
+                if let Some(tab_id) = this.state.get_active_tab_id() {
+                    this.state.update_active_tab(|tab| {
+                        tab.current_page = tab.page_count.saturating_sub(1);
+                    });
+                    this.render_current_tab_page(tab_id, cx);
+                    cx.notify();
+                }
+            })))
+            .child(div().w(px(4.0)))
             .child(toolbar_btn_enabled("−", has_doc, colors, cx.listener(|this, _event, _window, cx| {
                 this.zoom_out(cx);
             })))
             .child(toolbar_btn_enabled("+", has_doc, colors, cx.listener(|this, _event, _window, cx| {
                 this.zoom_in(cx);
             })))
-            .child(div().w(px(8.0)))
+            .child(toolbar_btn_enabled("1:1", has_doc, colors, cx.listener(|this, _event, _window, cx| {
+                this.reset_zoom(cx);
+            })))
+            .child(toolbar_btn_enabled("↔", has_doc, colors, cx.listener(|this, _event, _window, cx| {
+                this.fit_width(cx);
+            })))
+            .child(toolbar_btn_enabled("□", has_doc, colors, cx.listener(|this, _event, _window, cx| {
+                this.fit_page(cx);
+            })))
+            .child(div().w(px(4.0)))
             .child(toolbar_btn_enabled("↻", has_doc, colors, cx.listener(|this, _event, _window, cx| {
                 this.rotate_clockwise(cx);
             })))
             .child(toolbar_btn_enabled("↺", has_doc, colors, cx.listener(|this, _event, _window, cx| {
                 this.rotate_counter_clockwise(cx);
+            })))
+            .child(div().w(px(4.0)))
+            .child(toolbar_btn_enabled(sidebar_emoji, has_doc, colors, cx.listener(|this, _event, _window, cx| {
+                this.show_sidebar = !this.show_sidebar;
+                cx.notify();
             })))
             .child(div().flex_1())
             .child(div().relative()
@@ -323,7 +456,7 @@ impl PdfReaderApp {
                         div()
                             .absolute()
                             .right_0()
-                            .top(px(28.0))
+                            .top(px(32.0))
                             .flex()
                             .flex_col()
                             .w(px(120.0))
@@ -349,8 +482,8 @@ impl PdfReaderApp {
             })))
     }
 
-    fn render_sidebar(&self, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
-        let outline = &self.outline_items;
+    fn render_sidebar(&self, active_tab_id: Option<usize>, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
+        let outline = active_tab_id.and_then(|id| self.state.tabs.get_tab(id).and_then(|t| t.outline_items.clone()));
 
         div()
             .w(px(200.0))
@@ -383,7 +516,7 @@ impl PdfReaderApp {
                     .p_1()
                     .child(match outline {
                         Some(items) if !items.is_empty() => {
-                            self.render_outline_items(items, colors, cx, 0).into_any_element()
+                            self.render_outline_items(&items, colors, cx, 0).into_any_element()
                         },
                         _ => {
                             div()
@@ -414,8 +547,15 @@ impl PdfReaderApp {
                                 .text_color(colors.text)
                                 .child(format!("{}", item.title))
                         )
-                        .on_mouse_down(MouseButton::Left, cx.listener(move |this, _event, _window, cx| {
-                            this.go_to_page(page_num, cx);
+                        .on_mouse_down(MouseButton::Left, cx.listener({
+                            let page = page_num;
+                            move |this, _event, _window, cx| {
+                                if let Some(tab_id) = this.state.get_active_tab_id() {
+                                    let _ = this.state.navigate_to_page(page);
+                                    this.render_current_tab_page(tab_id, cx);
+                                    cx.notify();
+                                }
+                            }
                         }))
                 );
             
@@ -429,10 +569,8 @@ impl PdfReaderApp {
         container
     }
 
-    fn render_pdf_view(&self, colors: ThemeColors, _cx: &mut Context<Self>) -> impl IntoElement {
-        let has_doc = self.state.current_doc.lock().unwrap().is_some();
-
-        if !has_doc {
+    fn render_pdf_view(&self, active_tab_id: Option<usize>, colors: ThemeColors, _cx: &mut Context<Self>) -> impl IntoElement {
+        if active_tab_id.is_none() {
             return div()
                 .flex_1()
                 .h_full()
@@ -450,34 +588,32 @@ impl PdfReaderApp {
                             div()
                                 .text_size(px(14.0))
                                 .text_color(colors.text_secondary)
-                                .child("拖放 PDF 文件到此处")
-                        )
-                        .child(
-                            div()
-                                .text_size(px(11.0))
-                                .text_color(colors.text_secondary)
-                                .child("或按 Ctrl+O / Cmd+O 打开文件")
+                                .child("打开 PDF 文件开始阅读")
                         )
                 )
                 .into_any_element();
         }
 
-        if let Some(image) = &self.current_page_image {
-            let (width, height) = self.page_dimensions.unwrap_or((800, 600));
-            let render_image = image.clone();
-            
-            return div()
-                .flex_1()
-                .bg(colors.pdf_view)
-                .flex()
-                .items_center()
-                .justify_center()
-                .child(
-                    img(render_image.clone())
-                        .w(px(width as f32))
-                        .h(px(height as f32))
-                )
-                .into_any_element();
+        if let Some(tab_id) = active_tab_id {
+            if let Some(tab) = self.state.tabs.get_tab(tab_id) {
+                if let Some(image) = &tab.page_image {
+                    let (width, height) = tab.page_dimensions.unwrap_or((800, 600));
+                    let render_image = image.clone();
+                    
+                    return div()
+                        .flex_1()
+                        .bg(colors.pdf_view)
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(
+                            img(render_image.clone())
+                                .w(px(width as f32))
+                                .h(px(height as f32))
+                        )
+                        .into_any_element();
+                }
+            }
         }
 
         div()
@@ -496,16 +632,18 @@ impl PdfReaderApp {
             .into_any_element()
     }
 
-    fn render_status_bar(&self, colors: ThemeColors, _cx: &mut Context<Self>) -> impl IntoElement {
-        let (page_info, zoom_info, file_name) = if let Some(doc) = self.state.current_doc.lock().unwrap().as_ref() {
-            let file_name = doc.path.file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default();
-            (
-                format!("{} / {}", doc.current_page + 1, doc.page_count),
-                format!("{:.0}%", doc.zoom * 100.0),
-                file_name
-            )
+    fn render_status_bar(&self, active_tab_id: Option<usize>, colors: ThemeColors, _cx: &mut Context<Self>) -> impl IntoElement {
+        let (page_info, zoom_info, file_name) = if let Some(tab_id) = active_tab_id {
+            if let Some(tab) = self.state.tabs.get_tab(tab_id) {
+                let file_name = tab.file_name();
+                (
+                    format!("{} / {}", tab.current_page + 1, tab.page_count),
+                    format!("{:.0}%", tab.zoom * 100.0),
+                    file_name,
+                )
+            } else {
+                (String::new(), String::new(), String::new())
+            }
         } else {
             (String::new(), String::new(), String::new())
         };

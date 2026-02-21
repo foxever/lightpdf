@@ -8,12 +8,11 @@ mod i18n;
 mod theme;
 
 use app::PdfReaderApp;
+use app::menu::*;
 use gpui::{
-    App, Application, Menu, MenuItem, SystemMenuType, actions,
+    App, Application, Menu, MenuItem, SystemMenuType,
     prelude::*,
 };
-
-actions!(lightpdf, [Quit, ToggleTheme]);
 
 fn main() {
     env_logger::init();
@@ -23,9 +22,16 @@ fn main() {
 
     Application::new().run(move |cx: &mut App| {
         cx.activate(true);
-        cx.on_action(quit);
-
-        cx.set_menus(vec![
+        cx.on_action(|_: &Quit, cx: &mut App| {
+            cx.quit();
+        });
+        
+        let app_state = Arc::new(app::state::AppState::new());
+        let language = app_state.get_language();
+        
+        let menus = app::menu::create_menus(language);
+        
+        let mut full_menus = vec![
             Menu {
                 name: "LightPDF".into(),
                 items: vec![
@@ -34,9 +40,11 @@ fn main() {
                     MenuItem::action("Quit", Quit),
                 ],
             },
-        ]);
-
-        let app_state = Arc::new(app::state::AppState::new());
+        ];
+        full_menus.extend(menus);
+        
+        cx.set_menus(full_menus);
+        
         let file_path_clone = file_path.clone();
 
         cx.open_window(
@@ -55,15 +63,13 @@ fn main() {
                 ..Default::default()
             },
             move |window, cx| {
-
-                
                 cx.new(move |cx| {
                     let mut app = PdfReaderApp::new(app_state.clone(), window, cx);
                     
                     if let Some(path_str) = &file_path_clone {
                         let path = std::path::PathBuf::from(path_str);
                         if path.exists() {
-                            app.open_file(path, cx);
+                            app.open_file_in_new_tab(path, cx);
                         } else {
                             log::error!("File not found: {}", path_str);
                         }
@@ -75,8 +81,4 @@ fn main() {
         )
         .unwrap();
     });
-}
-
-fn quit(_: &Quit, cx: &mut App) {
-    cx.quit();
 }
