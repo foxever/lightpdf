@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
 use crate::pdf::loader::PdfLoader;
 use crate::theme::Theme;
-use crate::i18n::Language;
+use crate::i18n::{Language, I18n};
 use crate::app::tabs::{Tab, TabManager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -181,6 +181,10 @@ impl AppState {
 
     pub fn get_language(&self) -> Language {
         self.config.lock().unwrap().language
+    }
+
+    pub fn get_i18n(&self) -> I18n {
+        I18n::new(self.get_language())
     }
 
     fn load_config() -> AppConfig {

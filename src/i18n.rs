@@ -67,6 +67,7 @@ impl I18n {
             "app_name" => "LightPDF".to_string(),
             "menu_file" => "File".to_string(),
             "menu_open" => "Open...".to_string(),
+            "menu_open_file_dialog" => "Select PDF file".to_string(),
             "menu_quit" => "Quit".to_string(),
             "menu_view" => "View".to_string(),
             "menu_zoom_in" => "Zoom In".to_string(),
@@ -93,6 +94,8 @@ impl I18n {
             "pdf_or_shortcut" => "or press Ctrl+O / Cmd+O to open a file".to_string(),
             "pdf_loading" => "Loading...".to_string(),
             "pdf_no_outline" => "No outline".to_string(),
+            "sidebar_outline" => "Outline".to_string(),
+            "welcome_message" => "Open a PDF file to start reading".to_string(),
             _ => key.to_string(),
         }
     }
@@ -102,6 +105,7 @@ impl I18n {
             "app_name" => "LightPDF".to_string(),
             "menu_file" => "文件".to_string(),
             "menu_open" => "打开...".to_string(),
+            "menu_open_file_dialog" => "选择 PDF 文件".to_string(),
             "menu_quit" => "退出".to_string(),
             "menu_view" => "视图".to_string(),
             "menu_zoom_in" => "放大".to_string(),
@@ -128,6 +132,8 @@ impl I18n {
             "pdf_or_shortcut" => "或按 Ctrl+O / Cmd+O 打开文件".to_string(),
             "pdf_loading" => "正在加载...".to_string(),
             "pdf_no_outline" => "暂无目录".to_string(),
+            "sidebar_outline" => "目录".to_string(),
+            "welcome_message" => "打开 PDF 文件开始阅读".to_string(),
             _ => key.to_string(),
         }
     }
@@ -163,6 +169,9 @@ impl I18n {
             "pdf_or_shortcut" => "o presiona Ctrl+O / Cmd+O para abrir un archivo".to_string(),
             "pdf_loading" => "Cargando...".to_string(),
             "pdf_no_outline" => "Sin esquema".to_string(),
+            "menu_open_file_dialog" => "Seleccionar archivo PDF".to_string(),
+            "sidebar_outline" => "Esquema".to_string(),
+            "welcome_message" => "Abre un archivo PDF para comenzar a leer".to_string(),
             _ => key.to_string(),
         }
     }

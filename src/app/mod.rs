@@ -480,36 +480,15 @@ impl PdfReaderApp {
                 cx.notify();
             })))
             .child(div().flex_1())
-            .child(div().relative()
-                .child(toolbar_btn(lang_flag, colors, cx.listener(|this, _event, _window, cx| {
-                    this.toggle_language_menu(cx);
-                })))
-                .when(show_menu, |this| {
-                    this.child(
-                        div()
-                            .absolute()
-                            .right_0()
-                            .top(px(32.0))
-                            .flex()
-                            .flex_col()
-                            .w(px(120.0))
-                            .bg(colors.background)
-                            .border_1()
-                            .border_color(colors.border)
-                            .rounded_sm()
-                            .shadow_md()
-                            .child(lang_menu_item("🇺🇸 English", language != crate::i18n::Language::English, colors, cx.listener(|this, _event, _window, cx| {
-                                this.set_language(crate::i18n::Language::English, cx);
-                            })))
-                            .child(lang_menu_item("🇨🇳 中文", language != crate::i18n::Language::Chinese, colors, cx.listener(|this, _event, _window, cx| {
-                                this.set_language(crate::i18n::Language::Chinese, cx);
-                            })))
-                            .child(lang_menu_item("🇪🇸 Español", language != crate::i18n::Language::Spanish, colors, cx.listener(|this, _event, _window, cx| {
-                                this.set_language(crate::i18n::Language::Spanish, cx);
-                            })))
-                    )
-                })
-            )
+            .child(toolbar_btn(lang_flag, colors, cx.listener(|this, _event, _window, cx| {
+                let current_lang = this.state.get_language();
+                let next_lang = match current_lang {
+                    crate::i18n::Language::English => crate::i18n::Language::Chinese,
+                    crate::i18n::Language::Chinese => crate::i18n::Language::Spanish,
+                    crate::i18n::Language::Spanish => crate::i18n::Language::English,
+                };
+                this.set_language(next_lang, cx);
+            })))
             .child(toolbar_btn(theme_emoji, colors, cx.listener(|this, _event, _window, cx| {
                 this.toggle_theme(cx);
             })))
@@ -517,6 +496,7 @@ impl PdfReaderApp {
 
     fn render_sidebar(&self, active_tab_id: Option<usize>, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
         let outline = active_tab_id.and_then(|id| self.state.tabs.get_tab(id).and_then(|t| t.outline_items.clone()));
+        let i18n = self.state.get_i18n();
 
         div()
             .w(px(200.0))
@@ -540,7 +520,7 @@ impl PdfReaderApp {
                         div()
                             .text_size(px(11.0))
                             .text_color(colors.text)
-                            .child("目录")
+                            .child(i18n.t("sidebar_outline"))
                     )
             )
             .child(
@@ -555,7 +535,7 @@ impl PdfReaderApp {
                             div()
                                 .text_size(px(10.0))
                                 .text_color(colors.text_secondary)
-                                .child("暂无目录")
+                                .child(i18n.t("pdf_no_outline"))
                                 .into_any_element()
                         }
                     })
@@ -603,6 +583,7 @@ impl PdfReaderApp {
     }
 
     fn render_pdf_view(&self, active_tab_id: Option<usize>, colors: ThemeColors, _cx: &mut Context<Self>) -> impl IntoElement {
+        let i18n = self.state.get_i18n();
         if active_tab_id.is_none() {
             return div()
                 .flex_1()
@@ -621,7 +602,7 @@ impl PdfReaderApp {
                             div()
                                 .text_size(px(14.0))
                                 .text_color(colors.text_secondary)
-                                .child("打开 PDF 文件开始阅读")
+                                .child(i18n.t("welcome_message"))
                         )
                 )
                 .into_any_element();
@@ -666,6 +647,7 @@ impl PdfReaderApp {
     }
 
     fn render_status_bar(&self, active_tab_id: Option<usize>, colors: ThemeColors, _cx: &mut Context<Self>) -> impl IntoElement {
+        let i18n = self.state.get_i18n();
         let (page_info, zoom_info, file_name) = if let Some(tab_id) = active_tab_id {
             if let Some(tab) = self.state.tabs.get_tab(tab_id) {
                 let file_name = tab.file_name();
@@ -698,7 +680,7 @@ impl PdfReaderApp {
                 div()
                     .text_size(px(10.0))
                     .text_color(colors.text)
-                    .child(if has_doc { file_name } else { "就绪".to_string() })
+                    .child(if has_doc { file_name } else { i18n.t("status_ready") })
             )
             .child(div().flex_1())
             .child(
