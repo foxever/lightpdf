@@ -397,8 +397,8 @@ impl PdfReaderApp {
     fn render_toolbar(&self, has_doc: bool, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.state.get_theme();
         let theme_emoji = match theme {
-            crate::theme::Theme::Light => "☾",
-            crate::theme::Theme::Dark => "☼",
+            crate::theme::Theme::Light => "🌙",
+            crate::theme::Theme::Dark => "☀️",
         };
 
         let language = self.state.get_language();
