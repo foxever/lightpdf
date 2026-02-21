@@ -5,7 +5,6 @@ use std::sync::Arc;
 mod app;
 mod i18n;
 mod pdf;
-mod platform;
 mod theme;
 mod utils;
 
