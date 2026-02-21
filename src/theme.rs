@@ -24,6 +24,8 @@ pub struct ThemeColors {
     pub toolbar: Rgba,
     pub status_bar: Rgba,
     pub pdf_view: Rgba,
+    pub moon_color: Rgba,
+    pub sun_color: Rgba,
 }
 
 impl ThemeColors {
@@ -45,6 +47,8 @@ impl ThemeColors {
             toolbar: rgb(0xe0e0e0).into(),
             status_bar: rgb(0xe0e0e0).into(),
             pdf_view: rgb(0xf0f0f0).into(),
+            moon_color: rgb(0x1a1a1a).into(),
+            sun_color: rgb(0xffcc00).into(),
         }
     }
 
@@ -59,6 +63,8 @@ impl ThemeColors {
             toolbar: rgb(0x2b2b2b).into(),
             status_bar: rgb(0x2b2b2b).into(),
             pdf_view: rgb(0x404040).into(),
+            moon_color: rgb(0xcccccc).into(),
+            sun_color: rgb(0xffdd44).into(),
         }
     }
 }

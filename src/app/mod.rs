@@ -702,6 +702,13 @@ fn toolbar_btn<F>(label: &str, colors: ThemeColors, on_click: F) -> impl IntoEle
 where
     F: Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
 {
+    toolbar_btn_with_color(label, colors, colors.text, on_click)
+}
+
+fn toolbar_btn_with_color<F>(label: &str, colors: ThemeColors, text_color: gpui::Rgba, on_click: F) -> impl IntoElement
+where
+    F: Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
+{
     div()
         .px_2()
         .py(px(2.0))
@@ -711,7 +718,7 @@ where
         .child(
             div()
                 .text_size(px(12.0))
-                .text_color(colors.text)
+                .text_color(text_color)
                 .child(label.to_string())
         )
         .on_mouse_down(MouseButton::Left, on_click)
