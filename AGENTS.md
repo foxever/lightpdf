@@ -1,6 +1,6 @@
 # Vibe Coding Principles
 
-This document outlines the principles for AI-assisted development in the LightPDF project.
+This document outlines the principles for AI-assisted development in the lingpdf project.
 
 ## Core Philosophy
 
@@ -110,7 +110,7 @@ AI: Implement approved changes
 
 ## Project-Specific Guidelines
 
-### LightPDF Conventions
+### lingpdf Conventions
 
 - Use GPUI patterns for UI components
 - Follow Rust idiomatic code style

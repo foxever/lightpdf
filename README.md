@@ -1,4 +1,4 @@
-# LightPDF
+# lingpdf
 
 A lightweight, cross-platform PDF reader built with Rust and GPUI.
 
@@ -27,7 +27,7 @@ A lightweight, cross-platform PDF reader built with Rust and GPUI.
 ```bash
 # Clone
 git clone <repository-url>
-cd lightpdf
+cd lingpdf
 
 # Run
 cargo run

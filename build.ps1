@@ -1,4 +1,4 @@
-# Build script for LightPDF (Windows)
+# Build script for lingpdf (Windows)
 # Supports: Windows (x86_64)
 
 param(
@@ -19,7 +19,7 @@ if (-not (Test-Path $DistDir)) {
 }
 
 Write-Host "======================================"
-Write-Host "  LightPDF Build Script (Windows)"
+Write-Host "  lingpdf Build Script (Windows)"
 Write-Host "======================================"
 Write-Host ""
 
@@ -57,8 +57,8 @@ function Package-Windows {
     Write-Host "Packaging Windows (x86_64)..."
     
     $Target = "x86_64-pc-windows-msvc"
-    $Binary = Join-Path $TargetDir "$Target\release\lightpdf.exe"
-    $PackageDir = Join-Path $DistDir "lightpdf-windows-x86_64"
+    $Binary = Join-Path $TargetDir "$Target\release\lingpdf.exe"
+    $PackageDir = Join-Path $DistDir "lingpdf-windows-x86_64"
     
     if (Test-Path $PackageDir) {
         Remove-Item -Path $PackageDir -Recurse -Force
@@ -69,10 +69,10 @@ function Package-Windows {
     Copy-Item -Path $Binary -Destination $PackageDir
     
     $ReadmeContent = @"
-LightPDF - A lightweight, cross-platform PDF reader
+lingpdf - A lightweight, cross-platform PDF reader
 
 Usage:
-  lightpdf.exe [PDF file]
+  lingpdf.exe [PDF file]
 "@
     
     $ReadmePath = Join-Path $PackageDir "README.txt"

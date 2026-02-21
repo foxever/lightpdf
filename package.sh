@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# LightPDF Build Script for release packages
+# lingpdf Build Script for release packages
 # Supports: DMG (macOS), EXE, MSI (Windows)
 
 set -e
@@ -12,7 +12,7 @@ DIST_DIR="$PROJECT_DIR/dist"
 mkdir -p "$DIST_DIR"
 
 echo "======================================"
-echo "  LightPDF Package Builder"
+echo "  lingpdf Package Builder"
 echo "======================================"
 
 # Function to check required tools
@@ -49,10 +49,10 @@ package_macos_dmg() {
     echo ""
     echo "Creating macOS DMG..."
     
-    local app_name="LightPDF"
+    local app_name="lingpdf"
     local app_bundle="$DIST_DIR/$app_name-$arch.app"
-    local dmg_path="$DIST_DIR/LightPDF-macos-$arch.dmg"
-    local binary="$TARGET_DIR/$target/release/lightpdf"
+    local dmg_path="$DIST_DIR/lingpdf-macos-$arch.dmg"
+    local binary="$TARGET_DIR/$target/release/lingpdf"
     local libpdfium="$PROJECT_DIR/lib/libpdfium.dylib"
     
     # Clean and create app bundle
@@ -62,7 +62,7 @@ package_macos_dmg() {
     
     # Copy binary
     cp "$binary" "$app_bundle/Contents/MacOS/"
-    chmod +x "$app_bundle/Contents/MacOS/lightpdf"
+    chmod +x "$app_bundle/Contents/MacOS/lingpdf"
     
     # Copy libpdfium
     if [ -f "$libpdfium" ]; then
@@ -83,11 +83,11 @@ package_macos_dmg() {
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>lightpdf</string>
+    <string>lingpdf</string>
     <key>CFBundleIdentifier</key>
-    <string>com.lightpdf.app</string>
+    <string>com.lingpdf.app</string>
     <key>CFBundleName</key>
-    <string>LightPDF</string>
+    <string>lingpdf</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -104,7 +104,7 @@ EOF
     
     # Create DMG using hdiutil
     if command -v hdiutil &> /dev/null; then
-        hdiutil create -volname "LightPDF" -srcfolder "$app_bundle" -ov -format UDZO "$dmg_path"
+        hdiutil create -volname "lingpdf" -srcfolder "$app_bundle" -ov -format UDZO "$dmg_path"
         echo "✓ Created DMG: $dmg_path"
     else
         echo "Warning: hdiutil not found, skipping DMG"
@@ -118,8 +118,8 @@ package_windows_exe() {
     echo ""
     echo "Creating Windows EXE package..."
     
-    local binary="$TARGET_DIR/$target/release/lightpdf.exe"
-    local package_dir="$DIST_DIR/LightPDF-windows-x86_64"
+    local binary="$TARGET_DIR/$target/release/lingpdf.exe"
+    local package_dir="$DIST_DIR/lingpdf-windows-x86_64"
     local libpdfium="$PROJECT_DIR/lib/pdfium.dll"
     
     rm -rf "$package_dir"
@@ -138,10 +138,10 @@ package_windows_exe() {
     
     # Create ZIP
     cd "$DIST_DIR"
-    zip -r "LightPDF-windows-x86_64.zip" "LightPDF-windows-x86_64"
+    zip -r "lingpdf-windows-x86_64.zip" "lingpdf-windows-x86_64"
     cd "$PROJECT_DIR"
     
-    echo "✓ Created: dist/LightPDF-windows-x86_64.zip"
+    echo "✓ Created: dist/lingpdf-windows-x86_64.zip"
 }
 
 # Package Windows MSI
@@ -160,8 +160,8 @@ package_windows_msi() {
         fi
     fi
     
-    local package_dir="$DIST_DIR/LightPDF-windows-x86_64"
-    local msi_path="$DIST_DIR/LightPDF-windows-x86_64.msi"
+    local package_dir="$DIST_DIR/lingpdf-windows-x86_64"
+    local msi_path="$DIST_DIR/lingpdf-windows-x86_64.msi"
     
     if [ -d "$package_dir" ]; then
         # Create a simple MSI using WiX if available
@@ -170,20 +170,20 @@ package_windows_msi() {
             cat > "$DIST_DIR/product.wxs" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-    <Package Name="LightPDF" Version="0.1.0" Manufacturer="LightPDF" UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
-        <MajorUpgrade DowngradeErrorMessage="A newer version of LightPDF is already installed." />
+    <Package Name="lingpdf" Version="0.1.0" Manufacturer="lingpdf" UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+        <MajorUpgrade DowngradeErrorMessage="A newer version of lingpdf is already installed." />
         <MediaTemplate EmbedCab="yes" />
-        <Feature Id="ProductFeature" Title="LightPDF" Level="1">
+        <Feature Id="ProductFeature" Title="lingpdf" Level="1">
             <ComponentGroupRef Id="ProductComponents" />
         </Feature>
     </Package>
     <Fragment>
         <StandardDirectory Id="ProgramFiles64Folder">
-            <Directory Id="INSTALLFOLDER" Name="LightPDF" />
+            <Directory Id="INSTALLFOLDER" Name="lingpdf" />
         </StandardDirectory>
         <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
             <Component>
-                <File Source="LightPDF-windows-x86_64\lightpdf.exe" />
+                <File Source="lingpdf-windows-x86_64\lingpdf.exe" />
             </Component>
         </ComponentGroup>
     </Fragment>
@@ -195,8 +195,8 @@ EOF
         if [ ! -f "$msi_path" ]; then
             echo "Warning: MSI creation failed. Creating self-extracting archive instead..."
             cd "$DIST_DIR"
-            7z a -sfx7z.sfx "LightPDF-windows-x86_64-installer.exe" "LightPDF-windows-x86_64" 2>/dev/null || \
-            zip -r "LightPDF-windows-x86_64-portable.zip" "LightPDF-windows-x86_64"
+            7z a -sfx7z.sfx "lingpdf-windows-x86_64-installer.exe" "lingpdf-windows-x86_64" 2>/dev/null || \
+            zip -r "lingpdf-windows-x86_64-portable.zip" "lingpdf-windows-x86_64"
             cd "$PROJECT_DIR"
         fi
     fi

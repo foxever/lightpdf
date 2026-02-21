@@ -106,16 +106,16 @@ jobs:
       - name: Package macOS app
         if: startsWith(matrix.os, 'macos')
         run: |
-          APP_NAME="LightPDF"
+          APP_NAME="LingPDF"
           APP_BUNDLE="dist/${APP_NAME}.app"
-          BINARY="target/${{ matrix.target }}/release/lightpdf"
+          BINARY="target/${{ matrix.target }}/release/lingpdf"
           
           rm -rf "$APP_BUNDLE"
           mkdir -p "$APP_BUNDLE/Contents/MacOS"
           mkdir -p "$APP_BUNDLE/Contents/Resources"
           
           cp "$BINARY" "$APP_BUNDLE/Contents/MacOS/"
-          chmod +x "$APP_BUNDLE/Contents/MacOS/lightpdf"
+          chmod +x "$APP_BUNDLE/Contents/MacOS/lingpdf"
           
           if [ -f "lib/${{ matrix.pdfium_lib }}" ]; then
             cp "lib/${{ matrix.pdfium_lib }}" "$APP_BUNDLE/Contents/MacOS/"
@@ -127,11 +127,11 @@ jobs:
           <plist version="1.0">
           <dict>
               <key>CFBundleExecutable</key>
-              <string>lightpdf</string>
+              <string>lingpdf</string>
               <key>CFBundleIdentifier</key>
-              <string>com.lightpdf.app</string>
+              <string>com.lingpdf.app</string>
               <key>CFBundleName</key>
-              <string>LightPDF</string>
+              <string>LingPDF</string>
               <key>CFBundlePackageType</key>
               <string>APPL</string>
               <key>CFBundleShortVersionString</key>
@@ -147,34 +147,34 @@ jobs:
           EOF
           
           # Create DMG
-          hdiutil create -volname "LightPDF" -srcfolder "$APP_BUNDLE" -ov -format UDZO -o "dist/LightPDF-${{ matrix.name }}.dmg"
+          hdiutil create -volname "LingPDF" -srcfolder "$APP_BUNDLE" -ov -format UDZO -o "dist/LingPDF-${{ matrix.name }}.dmg"
           
           # Also create ZIP in dist folder
           cd dist
-          zip -r "LightPDF-${{ matrix.name }}.zip" "${APP_NAME}.app"
+          zip -r "LingPDF-${{ matrix.name }}.zip" "${APP_NAME}.app"
           cd ..
 
       - name: Package Linux AppImage
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          PACKAGE_DIR="dist/lightpdf-${{ matrix.name }}"
-          BINARY="target/${{ matrix.target }}/release/lightpdf"
+          PACKAGE_DIR="dist/lingpdf-${{ matrix.name }}"
+          BINARY="target/${{ matrix.target }}/release/lingpdf"
 
           mkdir -p "$PACKAGE_DIR"
           cp "$BINARY" "$PACKAGE_DIR/"
-          chmod +x "$PACKAGE_DIR/lightpdf"
+          chmod +x "$PACKAGE_DIR/lingpdf"
 
           if [ -f "lib/${{ matrix.pdfium_lib }}" ]; then
             cp "lib/${{ matrix.pdfium_lib }}" "$PACKAGE_DIR/"
           fi
 
           # Create AppDir structure for AppImage
-          APPDIR="LightPDF.AppDir"
+          APPDIR="lingpdf.AppDir"
           mkdir -p "$APPDIR/usr/bin"
           mkdir -p "$APPDIR/usr/lib"
           mkdir -p "$APPDIR/apprun/graphics"
 
-          cp "$PACKAGE_DIR/lightpdf" "$APPDIR/usr/bin/"
+          cp "$PACKAGE_DIR/lingpdf" "$APPDIR/usr/bin/"
           if [ -f "lib/${{ matrix.pdfium_lib }}" ]; then
             cp "lib/${{ matrix.pdfium_lib }}" "$APPDIR/usr/lib/"
           fi
@@ -186,17 +186,17 @@ jobs:
           DIR=$(dirname "$SELF")
           export PATH="$DIR/usr/bin:$PATH"
           export LD_LIBRARY_PATH="$DIR/usr/lib:$LD_LIBRARY_PATH"
-          exec "$DIR/usr/bin/lightpdf" "$@"
+          exec "$DIR/usr/bin/lingpdf" "$@"
           EOF
           chmod +x "$APPDIR/AppRun"
 
           # Create desktop file
-          cat > "$APPDIR/lightpdf.desktop" << 'EOF'
+          cat > "$APPDIR/lingpdf.desktop" << 'EOF'
           [Desktop Entry]
-          Name=LightPDF
+          Name=LingPDF
           Comment=A lightweight PDF reader
-          Exec=lightpdf
-          Icon=lightpdf
+          Exec=lingpdf
+          Icon=lingpdf
           Terminal=false
           Type=Application
           Categories=Office;Viewer;
@@ -209,12 +209,12 @@ jobs:
 
           # Create AppImage if appimagetool is available
           if command -v appimagetool &> /dev/null; then
-            appimagetool "$APPDIR" "dist/LightPDF-${{ matrix.name }}.AppImage"
+            appimagetool "$APPDIR" "dist/LingPDF-${{ matrix.name }}.AppImage"
           fi
 
           # Create tarball in dist folder
           cd dist
-          tar -czvf "LightPDF-${{ matrix.name }}.tar.gz" "lightpdf-${{ matrix.name }}"
+          tar -czvf "lingpdf-${{ matrix.name }}.tar.gz" "lingpdf-${{ matrix.name }}"
           cd ..
 
       - name: Install WiX
@@ -227,8 +227,8 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         shell: bash
         run: |
-          PACKAGE_DIR="dist/lightpdf-${{ matrix.name }}"
-          BINARY="target/${{ matrix.target }}/release/lightpdf.exe"
+          PACKAGE_DIR="dist/lingpdf-${{ matrix.name }}"
+          BINARY="target/${{ matrix.target }}/release/lingpdf.exe"
 
           mkdir -p "$PACKAGE_DIR"
           cp "$BINARY" "$PACKAGE_DIR/"
@@ -243,7 +243,7 @@ jobs:
 
           # Create ZIP in dist folder
           cd dist
-          zip -r "LightPDF-${{ matrix.name }}.zip" "lightpdf-${{ matrix.name }}"
+          zip -r "lingpdf-${{ matrix.name }}.zip" "lingpdf-${{ matrix.name }}"
           cd ..
 
       - name: Build Windows MSI
@@ -251,12 +251,12 @@ jobs:
         shell: bash
         run: |
           # Build MSI using WiX
-          wix build -arch x64 -o "dist/LightPDF-${{ matrix.name }}.msi" wix/LightPDF.wxs
+          wix build -arch x64 -o "dist/LingPDF-${{ matrix.name }}.msi" wix/lingpdf.wxs
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lightpdf-${{ matrix.name }}
+          name: lingpdf-${{ matrix.name }}
           path: |
             dist/*.zip
             dist/*.dmg
@@ -281,7 +281,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: LightPDF ${{ github.ref_name }}
+          name: LingPDF ${{ github.ref_name }}
           files: |
             artifacts/**/*.zip
             artifacts/**/*.dmg

@@ -2,7 +2,7 @@ use crate::i18n::Language;
 use gpui::*;
 
 actions!(
-    lightpdf,
+    lingpdf,
     [
         OpenFile,
         CloseTab,
@@ -87,7 +87,7 @@ fn create_english_menus() -> Vec<Menu> {
         },
         Menu {
             name: "Help".into(),
-            items: vec![MenuItem::action("About LightPDF", About)],
+            items: vec![MenuItem::action("About LingPDF", About)],
         },
     ]
 }
@@ -142,7 +142,7 @@ fn create_chinese_menus() -> Vec<Menu> {
         },
         Menu {
             name: "帮助".into(),
-            items: vec![MenuItem::action("关于 LightPDF", About)],
+            items: vec![MenuItem::action("关于 LingPDF", About)],
         },
     ]
 }
@@ -197,7 +197,7 @@ fn create_spanish_menus() -> Vec<Menu> {
         },
         Menu {
             name: "Ayuda".into(),
-            items: vec![MenuItem::action("Acerca de LightPDF", About)],
+            items: vec![MenuItem::action("Acerca de LingPDF", About)],
         },
     ]
 }

@@ -52,7 +52,7 @@ impl I18n {
 
     fn t_en(&self, key: &str) -> String {
         match key {
-            "app_name" => "LightPDF".to_string(),
+            "app_name" => "LingPDF".to_string(),
             "menu_file" => "File".to_string(),
             "menu_open" => "Open...".to_string(),
             "menu_open_file_dialog" => "Select PDF file".to_string(),
@@ -97,7 +97,7 @@ impl I18n {
 
     fn t_zh(&self, key: &str) -> String {
         match key {
-            "app_name" => "LightPDF".to_string(),
+            "app_name" => "LingPDF".to_string(),
             "menu_file" => "文件".to_string(),
             "menu_open" => "打开...".to_string(),
             "menu_open_file_dialog" => "选择 PDF 文件".to_string(),
@@ -142,7 +142,7 @@ impl I18n {
 
     fn t_es(&self, key: &str) -> String {
         match key {
-            "app_name" => "LightPDF".to_string(),
+            "app_name" => "LingPDF".to_string(),
             "menu_file" => "Archivo".to_string(),
             "menu_open" => "Abrir...".to_string(),
             "menu_quit" => "Salir".to_string(),

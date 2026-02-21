@@ -1,7 +1,7 @@
 use dirs_next::config_dir;
 use std::path::PathBuf;
 
-const APP_NAME: &str = "lightpdf";
+const APP_NAME: &str = "lingpdf";
 
 pub fn get_config_path() -> PathBuf {
     let mut path = config_dir().unwrap_or_else(|| PathBuf::from("."));

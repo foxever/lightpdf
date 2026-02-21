@@ -1,4 +1,4 @@
-# LightPDF - Project Specification
+# lingpdf - Project Specification
 
 ## 1. Overview
 
@@ -121,7 +121,7 @@ A lightweight, cross-platform PDF reader built with Rust and GPUI, using PDFium 
 ## 7. Project Structure
 
 ```
-lightpdf/
+lingpdf/
 ├── src/
 │   ├── main.rs              # Entry point
 │   ├── app/
@@ -162,9 +162,9 @@ Using `dirs-next` for standard platform directories:
 
 | Data Type | Windows | macOS | Linux |
 |-----------|---------|-------|
-| Config/Favorites | `%APPDATA%/lightpdf/config.json` | `~/Library/Application Support/lightpdf/config.json` | `~/.config/lightpdf/config.json` |
+| Config/Favorites | `%APPDATA%/lingpdf/config.json` | `~/Library/Application Support/lingpdf/config.json` | `~/.config/lingpdf/config.json` |
 | Recent Files | Same as config | Same as config | Same as config |
-| Cache | `%LOCALAPPDATA%/lightpdf/cache/` | `~/Library/Caches/lightpdf/` | `~/.cache/lightpdf/` |
+| Cache | `%LOCALAPPDATA%/lingpdf/cache/` | `~/Library/Caches/lingpdf/` | `~/.cache/lingpdf/` |
 
 ## 9. Dependencies
 

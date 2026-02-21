@@ -1,7 +1,7 @@
 .PHONY: help build build-macos-arm64 build-macos-x86_64 build-linux-x86_64 build-linux-aarch64 build-windows-x86_64 build-all clean
 
 help:
-	@echo "LightPDF Build System"
+	@echo "lingpdf Build System"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  help                Show this help message"

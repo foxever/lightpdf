@@ -20,7 +20,7 @@ pub struct PdfReaderApp {
 impl PdfReaderApp {
     pub fn new(state: Arc<AppState>, window: &mut Window, cx: &mut Context<Self>) -> Self {
         window.activate_window();
-        window.set_window_title("LightPDF");
+        window.set_window_title("LingPDF");
 
         let focus_handle = cx.focus_handle();
         focus_handle.focus(window);

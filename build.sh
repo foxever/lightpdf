@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build script for LightPDF
+# Build script for lingpdf
 # Supports: macOS (arm64, x86_64), Linux (x86_64, aarch64), Windows (x86_64)
 
 set -e
@@ -12,7 +12,7 @@ DIST_DIR="$PROJECT_DIR/dist"
 mkdir -p "$DIST_DIR"
 
 echo "======================================"
-echo "  LightPDF Build Script"
+echo "  lingpdf Build Script"
 echo "======================================"
 echo ""
 
@@ -150,9 +150,9 @@ package_macos() {
     echo ""
     echo "Packaging macOS ($arch) app..."
     
-    local app_name="LightPDF"
+    local app_name="lingpdf"
     local app_bundle="$DIST_DIR/$app_name-$arch.app"
-    local binary="$TARGET_DIR/$target/release/lightpdf"
+    local binary="$TARGET_DIR/$target/release/lingpdf"
     local libpdfium="$PROJECT_DIR/lib/libpdfium.dylib"
     local icon_svg="$PROJECT_DIR/resources/icon.svg"
     
@@ -163,7 +163,7 @@ package_macos() {
     
     # Copy binary
     cp "$binary" "$app_bundle/Contents/MacOS/"
-    chmod +x "$app_bundle/Contents/MacOS/lightpdf"
+    chmod +x "$app_bundle/Contents/MacOS/lingpdf"
     
     # Copy libpdfium
     if [ -f "$libpdfium" ]; then
@@ -188,11 +188,11 @@ package_macos() {
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>lightpdf</string>
+    <string>lingpdf</string>
     <key>CFBundleIdentifier</key>
-    <string>com.example.lightpdf</string>
+    <string>com.example.lingpdf</string>
     <key>CFBundleName</key>
-    <string>LightPDF</string>
+    <string>lingpdf</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -233,8 +233,8 @@ package_linux() {
     echo ""
     echo "Packaging Linux ($arch)..."
     
-    local binary="$TARGET_DIR/$target/release/lightpdf"
-    local package_dir="$DIST_DIR/lightpdf-linux-$arch"
+    local binary="$TARGET_DIR/$target/release/lingpdf"
+    local package_dir="$DIST_DIR/lingpdf-linux-$arch"
     local libpdfium="$PROJECT_DIR/lib/libpdfium.so"
     local icon_svg="$PROJECT_DIR/resources/icon.svg"
     
@@ -243,7 +243,7 @@ package_linux() {
     mkdir -p "$package_dir/icons"
     
     cp "$binary" "$package_dir/"
-    chmod +x "$package_dir/lightpdf"
+    chmod +x "$package_dir/lingpdf"
     
     # Copy libpdfium if exists
     if [ -f "$libpdfium" ]; then
@@ -269,12 +269,12 @@ package_linux() {
     fi
     
     # Create desktop entry
-    cat > "$package_dir/lightpdf.desktop" << EOF
+    cat > "$package_dir/lingpdf.desktop" << EOF
 [Desktop Entry]
-Name=LightPDF
+Name=lingpdf
 Comment=A lightweight, cross-platform PDF reader
-Exec=lightpdf
-Icon=lightpdf
+Exec=lingpdf
+Icon=lingpdf
 Terminal=false
 Type=Application
 Categories=Office;Viewer;
@@ -282,10 +282,10 @@ EOF
     
     # Create README
     cat > "$package_dir/README.txt" << EOF
-LightPDF - A lightweight, cross-platform PDF reader
+lingpdf - A lightweight, cross-platform PDF reader
 
 Usage:
-  ./lightpdf [PDF file]
+  ./lingpdf [PDF file]
 
 Note: If using dynamic linking, place libpdfium.so in the same directory.
 EOF
@@ -300,8 +300,8 @@ package_windows() {
     echo ""
     echo "Packaging Windows (x86_64)..."
     
-    local binary="$TARGET_DIR/$target/release/lightpdf.exe"
-    local package_dir="$DIST_DIR/lightpdf-windows-x86_64"
+    local binary="$TARGET_DIR/$target/release/lingpdf.exe"
+    local package_dir="$DIST_DIR/lingpdf-windows-x86_64"
     local libpdfium="$PROJECT_DIR/lib/pdfium.dll"
     local icon_svg="$PROJECT_DIR/resources/icon.svg"
     
@@ -337,10 +337,10 @@ package_windows() {
     
     # Create README
     cat > "$package_dir/README.txt" << EOF
-LightPDF - A lightweight, cross-platform PDF reader
+lingpdf - A lightweight, cross-platform PDF reader
 
 Usage:
-  lightpdf.exe [PDF file]
+  lingpdf.exe [PDF file]
 
 Note: If using dynamic linking, place pdfium.dll in the same directory.
 EOF

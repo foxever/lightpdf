@@ -1,11 +1,11 @@
 [package]
-name = "lightpdf"
+name = "lingpdf"
 version = "0.1.0"
 edition = "2021"
 authors = ["Developer <dev@example.com>"]
 description = "A lightweight, cross-platform PDF reader built with Rust and GPUI"
 license = "MIT"
-repository = "https://github.com/example/lightpdf"
+repository = "https://github.com/example/lingpdf"
 
 [dependencies]
 gpui = { version = "0.2.2", default-features = false }
@@ -41,7 +41,7 @@ winres = "0.1"
 tempfile = "3.0"
 
 [[bin]]
-name = "lightpdf"
+name = "lingpdf"
 path = "src/main.rs"
 
 [profile.release]

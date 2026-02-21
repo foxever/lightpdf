@@ -5,7 +5,7 @@ set -e
 TAG_NAME="v0.0.1"
 
 echo "======================================"
-echo "  LightPDF Release Script"
+echo "  lingpdf Release Script"
 echo "======================================"
 echo ""
 

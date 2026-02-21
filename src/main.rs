@@ -33,7 +33,7 @@ fn main() {
         let menus = app::menu::create_menus(language);
 
         let mut full_menus = vec![Menu {
-            name: "LightPDF".into(),
+            name: "LingPDF".into(),
             items: vec![
                 MenuItem::os_submenu("Services", SystemMenuType::Services),
                 MenuItem::separator(),
@@ -45,7 +45,7 @@ fn main() {
         cx.set_menus(full_menus);
 
         let titlebar_options = gpui::TitlebarOptions {
-            title: Some("LightPDF".into()),
+            title: Some("LingPDF".into()),
             #[cfg(target_os = "macos")]
             appears_transparent: true,
             ..Default::default()
