@@ -7,14 +7,6 @@ impl PdfLoader {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<PdfDocument> {
         PdfDocument::open(path)
     }
-
-    pub fn is_pdf<P: AsRef<Path>>(path: P) -> bool {
-        let path = path.as_ref();
-        path.extension()
-            .and_then(|ext| ext.to_str())
-            .map(|ext| ext.eq_ignore_ascii_case("pdf"))
-            .unwrap_or(false)
-    }
 }
 
 #[cfg(test)]

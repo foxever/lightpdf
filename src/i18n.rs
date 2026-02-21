@@ -42,18 +42,6 @@ impl I18n {
         Self { language }
     }
 
-    pub fn default() -> Self {
-        Self::new(Language::default())
-    }
-
-    pub fn set_language(&mut self, language: Language) {
-        self.language = language;
-    }
-
-    pub fn language(&self) -> Language {
-        self.language
-    }
-
     pub fn t(&self, key: &str) -> String {
         match self.language {
             Language::English => self.t_en(key),

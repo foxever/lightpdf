@@ -8,15 +8,12 @@ pub mod menu;
 pub mod state;
 pub mod tabs;
 
-use menu::*;
 use state::AppState;
 use tabs::Tab;
 
 pub struct PdfReaderApp {
     pub state: Arc<AppState>,
     pub show_sidebar: bool,
-    show_language_menu: bool,
-    window: Option<WeakEntity<Self>>,
     focus_handle: FocusHandle,
 }
 
@@ -31,8 +28,6 @@ impl PdfReaderApp {
         Self {
             state,
             show_sidebar: false,
-            show_language_menu: false,
-            window: None,
             focus_handle,
         }
     }
@@ -117,7 +112,7 @@ impl PdfReaderApp {
         let receiver = cx.prompt_for_paths(options);
 
         cx.spawn(
-            async move |this: WeakEntity<Self>, mut cx| match receiver.await {
+            async move |this: WeakEntity<Self>, cx| match receiver.await {
                 Ok(Ok(Some(paths))) => {
                     if let Some(path) = paths.into_iter().next() {
                         this.update(cx, |this: &mut Self, cx: &mut Context<Self>| {
@@ -244,16 +239,6 @@ impl PdfReaderApp {
             crate::theme::Theme::Dark => crate::theme::Theme::Light,
         };
         self.state.set_theme(new_theme);
-        cx.notify();
-    }
-
-    fn toggle_language_menu(&mut self, _cx: &mut Context<Self>) {
-        self.show_language_menu = !self.show_language_menu;
-    }
-
-    fn set_language(&mut self, lang: crate::i18n::Language, cx: &mut Context<Self>) {
-        self.state.set_language(lang);
-        self.show_language_menu = false;
         cx.notify();
     }
 }
@@ -610,7 +595,8 @@ impl PdfReaderApp {
                         crate::i18n::Language::Chinese => crate::i18n::Language::Spanish,
                         crate::i18n::Language::Spanish => crate::i18n::Language::English,
                     };
-                    this.set_language(next_lang, cx);
+                    this.state.set_language(next_lang);
+                    cx.notify();
                 }),
             ))
             .child(toolbar_btn_with_color(
@@ -973,30 +959,5 @@ where
     } else {
         base.bg(colors.background_secondary)
             .text_color(colors.text_secondary)
-    }
-}
-
-fn lang_menu_item<F>(
-    label: &str,
-    enabled: bool,
-    colors: ThemeColors,
-    on_click: F,
-) -> impl IntoElement
-where
-    F: Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
-{
-    let base = div().px_3().py(px(6.0)).w_full().cursor_pointer().child(
-        div()
-            .text_size(px(12.0))
-            .text_color(colors.text)
-            .child(label.to_string()),
-    );
-
-    if enabled {
-        base.bg(colors.background)
-            .hover(|this| this.bg(colors.background_tertiary))
-            .on_mouse_down(MouseButton::Left, on_click)
-    } else {
-        base.bg(colors.background_tertiary)
     }
 }

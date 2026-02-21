@@ -93,12 +93,6 @@ impl AppState {
         self.tabs.get_active_tab()
     }
 
-    pub fn get_active_tab(&self) -> Option<Tab> {
-        self.tabs
-            .get_active_tab()
-            .and_then(|id| self.tabs.get_tab(id))
-    }
-
     pub fn update_active_tab<F>(&self, f: F)
     where
         F: FnOnce(&mut Tab),
@@ -110,10 +104,6 @@ impl AppState {
 
     pub fn get_all_tabs(&self) -> Vec<Tab> {
         self.tabs.get_all_tabs()
-    }
-
-    pub fn tab_count(&self) -> usize {
-        self.tabs.tab_count()
     }
 
     pub fn navigate_to_page(&self, page: usize) -> anyhow::Result<()> {
@@ -141,12 +131,6 @@ impl AppState {
             }
         });
         Ok(())
-    }
-
-    pub fn set_zoom(&self, zoom: f32) {
-        self.update_active_tab(|tab| {
-            tab.zoom = zoom.clamp(0.5, 3.0);
-        });
     }
 
     pub fn zoom_in(&self) {

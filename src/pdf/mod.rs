@@ -68,10 +68,6 @@ impl PdfDocument {
         self.page_count
     }
 
-    pub fn path(&self) -> &std::path::Path {
-        &self.path
-    }
-
     pub fn render_page(&self, page_num: usize, zoom: f32) -> Result<(Vec<u8>, u32, u32)> {
         if page_num >= self.page_count {
             return Err(PdfError::InvalidPage(page_num));

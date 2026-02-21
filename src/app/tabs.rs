@@ -123,8 +123,4 @@ impl TabManager {
     pub fn get_all_tabs(&self) -> Vec<Tab> {
         self.tabs.lock().unwrap().clone()
     }
-
-    pub fn tab_count(&self) -> usize {
-        self.tabs.lock().unwrap().len()
-    }
 }
