@@ -6,12 +6,25 @@ use crate::theme::Theme;
 use crate::i18n::{Language, I18n};
 use crate::app::tabs::{Tab, TabManager};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ScrollMode {
+    Page,
+    Smooth,
+}
+
+impl Default for ScrollMode {
+    fn default() -> Self {
+        ScrollMode::Page
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub recent_files: Vec<String>,
     pub default_zoom: f32,
     pub theme: Theme,
     pub language: Language,
+    pub scroll_mode: ScrollMode,
 }
 
 impl Default for AppConfig {
@@ -21,6 +34,7 @@ impl Default for AppConfig {
             default_zoom: 1.0,
             theme: Theme::Dark,
             language: Language::default(),
+            scroll_mode: ScrollMode::default(),
         }
     }
 }
@@ -185,6 +199,16 @@ impl AppState {
 
     pub fn get_i18n(&self) -> I18n {
         I18n::new(self.get_language())
+    }
+
+    pub fn set_scroll_mode(&self, scroll_mode: ScrollMode) {
+        let mut config = self.config.lock().unwrap();
+        config.scroll_mode = scroll_mode;
+        self.save_config(&config);
+    }
+
+    pub fn get_scroll_mode(&self) -> ScrollMode {
+        self.config.lock().unwrap().scroll_mode
     }
 
     fn load_config() -> AppConfig {

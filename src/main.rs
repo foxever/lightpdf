@@ -10,9 +10,9 @@ mod i18n;
 mod theme;
 
 use app::PdfReaderApp;
-use app::menu::*;
+use app::menu::{PrevPage, NextPage, FirstPage, LastPage, ZoomIn, ZoomOut, ResetZoom, FitWidth, FitPage, RotateClockwise, RotateCounterClockwise, ToggleSidebar, ToggleTheme, FullScreen, Quit};
 use gpui::{
-    App, Application, Menu, MenuItem, SystemMenuType,
+    App, Application, Menu, MenuItem, SystemMenuType, WindowHandle,
     prelude::*,
 };
 
@@ -47,26 +47,16 @@ fn main() {
         
         cx.set_menus(full_menus);
         
+        let titlebar_options = gpui::TitlebarOptions {
+            title: Some("LightPDF".into()),
+            #[cfg(target_os = "macos")]
+            appears_transparent: true,
+            ..Default::default()
+        };
+        
         let file_path_clone = file_path.clone();
 
-        #[cfg(target_os = "macos")]
-        let titlebar_options = {
-            gpui::TitlebarOptions {
-                title: Some("LightPDF".into()),
-                appears_transparent: true,
-                ..Default::default()
-            }
-        };
-
-        #[cfg(not(target_os = "macos"))]
-        let titlebar_options = {
-            gpui::TitlebarOptions {
-                title: Some("LightPDF".into()),
-                ..Default::default()
-            }
-        };
-
-        cx.open_window(
+        let window_handle: WindowHandle<PdfReaderApp> = cx.open_window(
             gpui::WindowOptions {
                 titlebar: Some(titlebar_options),
                 window_bounds: Some(gpui::WindowBounds::Windowed(
@@ -94,7 +84,103 @@ fn main() {
                     app
                 })
             },
-        )
-        .unwrap();
+        ).unwrap();
+        
+        cx.on_action(move |_: &PrevPage, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.prev_page(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &NextPage, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.next_page(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &FirstPage, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                if let Some(tab_id) = app.state.get_active_tab_id() {
+                    app.state.update_active_tab(|tab| {
+                        tab.current_page = 0;
+                    });
+                    app.render_current_tab_page(tab_id, cx);
+                    cx.notify();
+                }
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &LastPage, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                if let Some(tab_id) = app.state.get_active_tab_id() {
+                    app.state.update_active_tab(|tab| {
+                        tab.current_page = tab.page_count.saturating_sub(1);
+                    });
+                    app.render_current_tab_page(tab_id, cx);
+                    cx.notify();
+                }
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &ZoomIn, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.zoom_in(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &ZoomOut, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.zoom_out(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &ResetZoom, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.reset_zoom(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &FitWidth, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.fit_width(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &FitPage, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.fit_page(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &RotateClockwise, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.rotate_clockwise(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &RotateCounterClockwise, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.rotate_counter_clockwise(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &ToggleSidebar, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.show_sidebar = !app.show_sidebar;
+                cx.notify();
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &ToggleTheme, cx: &mut App| {
+            window_handle.update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                app.toggle_theme(cx);
+            }).ok();
+        });
+        
+        cx.on_action(move |_: &FullScreen, cx: &mut App| {
+            window_handle.update(cx, |_app, window, _cx| {
+                window.toggle_fullscreen();
+            }).ok();
+        });
     });
 }

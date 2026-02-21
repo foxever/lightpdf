@@ -96,6 +96,8 @@ impl I18n {
             "pdf_no_outline" => "No outline".to_string(),
             "sidebar_outline" => "Outline".to_string(),
             "welcome_message" => "Open a PDF file to start reading".to_string(),
+            "scroll_mode_page" => "Page".to_string(),
+            "scroll_mode_smooth" => "Smooth".to_string(),
             _ => key.to_string(),
         }
     }
@@ -134,6 +136,8 @@ impl I18n {
             "pdf_no_outline" => "暂无目录".to_string(),
             "sidebar_outline" => "目录".to_string(),
             "welcome_message" => "打开 PDF 文件开始阅读".to_string(),
+            "scroll_mode_page" => "页".to_string(),
+            "scroll_mode_smooth" => "平滑".to_string(),
             _ => key.to_string(),
         }
     }
@@ -172,6 +176,8 @@ impl I18n {
             "menu_open_file_dialog" => "Seleccionar archivo PDF".to_string(),
             "sidebar_outline" => "Esquema".to_string(),
             "welcome_message" => "Abre un archivo PDF para comenzar a leer".to_string(),
+            "scroll_mode_page" => "Página".to_string(),
+            "scroll_mode_smooth" => "Suave".to_string(),
             _ => key.to_string(),
         }
     }

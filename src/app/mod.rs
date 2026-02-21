@@ -13,26 +13,31 @@ use tabs::Tab;
 use menu::*;
 
 pub struct PdfReaderApp {
-    state: Arc<AppState>,
-    show_sidebar: bool,
+    pub state: Arc<AppState>,
+    pub show_sidebar: bool,
     show_language_menu: bool,
     window: Option<WeakEntity<Self>>,
+    focus_handle: FocusHandle,
 }
 
 impl PdfReaderApp {
-    pub fn new(state: Arc<AppState>, window: &mut Window, _cx: &mut Context<Self>) -> Self {
+    pub fn new(state: Arc<AppState>, window: &mut Window, cx: &mut Context<Self>) -> Self {
         window.activate_window();
         window.set_window_title("LightPDF");
-        
+
+        let focus_handle = cx.focus_handle();
+        focus_handle.focus(window);
+
         Self {
             state,
             show_sidebar: false,
             show_language_menu: false,
             window: None,
+            focus_handle,
         }
     }
 
-    fn fit_width(&mut self, cx: &mut Context<Self>) {
+    pub fn fit_width(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             if let Some(tab) = self.state.tabs.get_tab(tab_id) {
                 if let Some(ref pdf_doc) = tab.doc {
@@ -51,7 +56,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn fit_page(&mut self, cx: &mut Context<Self>) {
+    pub fn fit_page(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             if let Some(tab) = self.state.tabs.get_tab(tab_id) {
                 if let Some(ref pdf_doc) = tab.doc {
@@ -101,7 +106,7 @@ impl PdfReaderApp {
         cx.notify();
     }
 
-    fn open_file_dialog(&mut self, cx: &mut Context<Self>) {
+    pub fn open_file_dialog(&mut self, cx: &mut Context<Self>) {
         let options = PathPromptOptions {
             files: true,
             directories: false,
@@ -125,7 +130,7 @@ impl PdfReaderApp {
         }).detach();
     }
 
-    fn render_current_tab_page(&mut self, tab_id: usize, _cx: &mut Context<Self>) {
+    pub fn render_current_tab_page(&mut self, tab_id: usize, _cx: &mut Context<Self>) {
         if let Some(tab) = self.state.tabs.get_tab(tab_id) {
             if let Some(ref pdf_doc) = tab.doc {
                 let current_page = tab.current_page;
@@ -180,7 +185,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn next_page(&mut self, cx: &mut Context<Self>) {
+    pub fn next_page(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             let _ = self.state.next_page();
             self.render_current_tab_page(tab_id, cx);
@@ -188,7 +193,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn prev_page(&mut self, cx: &mut Context<Self>) {
+    pub fn prev_page(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             let _ = self.state.prev_page();
             self.render_current_tab_page(tab_id, cx);
@@ -196,7 +201,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn zoom_in(&mut self, cx: &mut Context<Self>) {
+    pub fn zoom_in(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             self.state.zoom_in();
             self.render_current_tab_page(tab_id, cx);
@@ -204,7 +209,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn zoom_out(&mut self, cx: &mut Context<Self>) {
+    pub fn zoom_out(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             self.state.zoom_out();
             self.render_current_tab_page(tab_id, cx);
@@ -212,7 +217,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn reset_zoom(&mut self, cx: &mut Context<Self>) {
+    pub fn reset_zoom(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             self.state.reset_zoom();
             self.render_current_tab_page(tab_id, cx);
@@ -220,7 +225,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn rotate_clockwise(&mut self, cx: &mut Context<Self>) {
+    pub fn rotate_clockwise(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             self.state.rotate_clockwise();
             self.render_current_tab_page(tab_id, cx);
@@ -228,7 +233,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn rotate_counter_clockwise(&mut self, cx: &mut Context<Self>) {
+    pub fn rotate_counter_clockwise(&mut self, cx: &mut Context<Self>) {
         if let Some(tab_id) = self.state.get_active_tab_id() {
             self.state.rotate_counter_clockwise();
             self.render_current_tab_page(tab_id, cx);
@@ -236,7 +241,7 @@ impl PdfReaderApp {
         }
     }
 
-    fn toggle_theme(&mut self, cx: &mut Context<Self>) {
+    pub fn toggle_theme(&mut self, cx: &mut Context<Self>) {
         let current_theme = self.state.get_theme();
         let new_theme = match current_theme {
             crate::theme::Theme::Light => crate::theme::Theme::Dark,
@@ -269,6 +274,7 @@ impl Render for PdfReaderApp {
             .flex()
             .flex_col()
             .bg(colors.background)
+            .track_focus(&self.focus_handle)
             .child(self.render_combined_titlebar(&tabs, active_tab_id, colors, cx))
             .child(self.render_toolbar(active_tab_id.is_some(), colors, cx))
             .child(
@@ -285,6 +291,13 @@ impl Render for PdfReaderApp {
                     .child(self.render_pdf_view(active_tab_id, colors, cx))
             )
             .child(self.render_status_bar(active_tab_id, colors, cx))
+            .on_key_down(cx.listener(|this, event: &KeyDownEvent, _window, cx| {
+                match event.keystroke.key.as_str() {
+                    "left" => this.prev_page(cx),
+                    "right" => this.next_page(cx),
+                    _ => {}
+                }
+            }))
     }
 }
 
@@ -411,6 +424,12 @@ impl PdfReaderApp {
 
         let sidebar_emoji = if self.show_sidebar { "📑" } else { "📖" };
 
+        let scroll_mode = self.state.get_scroll_mode();
+        let scroll_emoji = match scroll_mode {
+            crate::app::state::ScrollMode::Page => "📄",
+            crate::app::state::ScrollMode::Smooth => "📜",
+        };
+
         div()
             .h(px(32.0))
             .w_full()
@@ -477,6 +496,16 @@ impl PdfReaderApp {
             .child(div().w(px(4.0)))
             .child(toolbar_btn_enabled(sidebar_emoji, has_doc, colors, cx.listener(|this, _event, _window, cx| {
                 this.show_sidebar = !this.show_sidebar;
+                cx.notify();
+            })))
+            .child(div().w(px(4.0)))
+            .child(toolbar_btn_enabled(scroll_emoji, has_doc, colors, cx.listener(|this, _event, _window, cx| {
+                let current_mode = this.state.get_scroll_mode();
+                let next_mode = match current_mode {
+                    crate::app::state::ScrollMode::Page => crate::app::state::ScrollMode::Smooth,
+                    crate::app::state::ScrollMode::Smooth => crate::app::state::ScrollMode::Page,
+                };
+                this.state.set_scroll_mode(next_mode);
                 cx.notify();
             })))
             .child(div().flex_1())
@@ -582,8 +611,10 @@ impl PdfReaderApp {
         container
     }
 
-    fn render_pdf_view(&self, active_tab_id: Option<usize>, colors: ThemeColors, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_pdf_view(&self, active_tab_id: Option<usize>, colors: ThemeColors, cx: &mut Context<Self>) -> impl IntoElement {
         let i18n = self.state.get_i18n();
+        let scroll_mode = self.state.get_scroll_mode();
+        
         if active_tab_id.is_none() {
             return div()
                 .flex_1()
@@ -614,20 +645,84 @@ impl PdfReaderApp {
                     let (width, height) = tab.page_dimensions.unwrap_or((800, 600));
                     let render_image = image.clone();
                     
-                    return div()
-                        .flex_1()
-                        .overflow_hidden()
-                        .bg(colors.pdf_view)
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .child(
-                            img(render_image.clone())
-                                .block()
-                                .max_w(px(width as f32))
-                                .max_h(px(height as f32))
-                        )
-                        .into_any_element();
+                    match scroll_mode {
+                        crate::app::state::ScrollMode::Page => {
+                            return div()
+                                .flex_1()
+                                .overflow_hidden()
+                                .bg(colors.pdf_view)
+                                .flex()
+                                .flex_row()
+                                .on_scroll_wheel(cx.listener(|this, event: &ScrollWheelEvent, _window, cx| {
+                                    match event.delta {
+                                        ScrollDelta::Pixels(delta) => {
+                                            if delta.y > px(10.0) {
+                                                this.next_page(cx);
+                                            } else if delta.y < px(-10.0) {
+                                                this.prev_page(cx);
+                                            }
+                                        }
+                                        ScrollDelta::Lines(delta) => {
+                                            if delta.y > 0.5 {
+                                                this.next_page(cx);
+                                            } else if delta.y < -0.5 {
+                                                this.prev_page(cx);
+                                            }
+                                        }
+                                    }
+                                }))
+                                .children([
+                                    div()
+                                        .flex_1()
+                                        .h_full()
+                                        .cursor_pointer()
+                                        .on_mouse_down(MouseButton::Left, cx.listener(|this, _event, _window, cx| {
+                                            this.prev_page(cx);
+                                        })),
+                                    div()
+                                        .flex_1()
+                                        .h_full()
+                                        .flex()
+                                        .items_center()
+                                        .justify_center()
+                                        .child(
+                                            img(render_image.clone())
+                                                .block()
+                                                .max_w(px(width as f32))
+                                                .max_h(px(height as f32))
+                                        ),
+                                    div()
+                                        .flex_1()
+                                        .h_full()
+                                        .cursor_pointer()
+                                        .on_mouse_down(MouseButton::Left, cx.listener(|this, _event, _window, cx| {
+                                            this.next_page(cx);
+                                        })),
+                                ])
+                                .into_any_element();
+                        }
+                        crate::app::state::ScrollMode::Smooth => {
+                            return div()
+                                .flex_1()
+                                .overflow_hidden()
+                                .bg(colors.pdf_view)
+                                .child(
+                                    div()
+                                        .flex_1()
+                                        .flex()
+                                        .flex_col()
+                                        .items_center()
+                                        .p_4()
+                                        .gap_4()
+                                        .child(
+                                            img(render_image.clone())
+                                                .block()
+                                                .max_w(px(width as f32))
+                                        )
+                                )
+                                .into_any_element();
+                        }
+                    }
                 }
             }
         }
