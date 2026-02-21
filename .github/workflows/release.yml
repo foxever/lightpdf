@@ -217,6 +217,11 @@ jobs:
             cp "lib/${{ matrix.pdfium_lib }}" "$PACKAGE_DIR/"
           fi
           
+          # Copy icon if available
+          if [ -f "resources/windows/icon.ico" ]; then
+            cp "resources/windows/icon.ico" "$PACKAGE_DIR/"
+          fi
+          
           cat > "$PACKAGE_DIR/README.txt" << 'EOF'
           LightPDF - A lightweight, cross-platform PDF reader
           

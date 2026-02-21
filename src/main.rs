@@ -49,13 +49,26 @@ fn main() {
         
         let file_path_clone = file_path.clone();
 
+        #[cfg(target_os = "macos")]
+        let titlebar_options = {
+            gpui::TitlebarOptions {
+                title: Some("LightPDF".into()),
+                appears_transparent: true,
+                ..Default::default()
+            }
+        };
+
+        #[cfg(not(target_os = "macos"))]
+        let titlebar_options = {
+            gpui::TitlebarOptions {
+                title: Some("LightPDF".into()),
+                ..Default::default()
+            }
+        };
+
         cx.open_window(
             gpui::WindowOptions {
-                titlebar: Some(gpui::TitlebarOptions {
-                    title: Some("LightPDF".into()),
-                    appears_transparent: true,
-                    ..Default::default()
-                }),
+                titlebar: Some(titlebar_options),
                 window_bounds: Some(gpui::WindowBounds::Windowed(
                     gpui::Bounds::centered(
                         None,

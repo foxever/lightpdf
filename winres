@@ -1,0 +1,9 @@
+[Metadata]
+Name = LightPDF
+Version = 0.1.0
+CompanyName = LightPDF
+FileDescription = A lightweight PDF reader
+ProductName = LightPDF
+
+[Resources]
+Icon = resources/windows/icon.ico
