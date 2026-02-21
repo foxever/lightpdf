@@ -1,30 +1,33 @@
-use gpui::*;
 use crate::i18n::Language;
+use gpui::*;
 
-actions!(lightpdf, [
-    OpenFile,
-    CloseTab,
-    SaveAs,
-    Print,
-    Quit,
-    ZoomIn,
-    ZoomOut,
-    ResetZoom,
-    FitWidth,
-    FitPage,
-    RotateClockwise,
-    RotateCounterClockwise,
-    FullScreen,
-    ToggleSidebar,
-    PrevPage,
-    NextPage,
-    FirstPage,
-    LastPage,
-    GoToPage,
-    AddToFavorites,
-    ToggleTheme,
-    About
-]);
+actions!(
+    lightpdf,
+    [
+        OpenFile,
+        CloseTab,
+        SaveAs,
+        Print,
+        Quit,
+        ZoomIn,
+        ZoomOut,
+        ResetZoom,
+        FitWidth,
+        FitPage,
+        RotateClockwise,
+        RotateCounterClockwise,
+        FullScreen,
+        ToggleSidebar,
+        PrevPage,
+        NextPage,
+        FirstPage,
+        LastPage,
+        GoToPage,
+        AddToFavorites,
+        ToggleTheme,
+        About
+    ]
+);
 
 pub fn create_menus(language: Language) -> Vec<Menu> {
     match language {
@@ -80,15 +83,11 @@ fn create_english_menus() -> Vec<Menu> {
         },
         Menu {
             name: "Favorites".into(),
-            items: vec![
-                MenuItem::action("Add to Favorites", AddToFavorites),
-            ],
+            items: vec![MenuItem::action("Add to Favorites", AddToFavorites)],
         },
         Menu {
             name: "Help".into(),
-            items: vec![
-                MenuItem::action("About LightPDF", About),
-            ],
+            items: vec![MenuItem::action("About LightPDF", About)],
         },
     ]
 }
@@ -139,15 +138,11 @@ fn create_chinese_menus() -> Vec<Menu> {
         },
         Menu {
             name: "收藏".into(),
-            items: vec![
-                MenuItem::action("添加到收藏", AddToFavorites),
-            ],
+            items: vec![MenuItem::action("添加到收藏", AddToFavorites)],
         },
         Menu {
             name: "帮助".into(),
-            items: vec![
-                MenuItem::action("关于 LightPDF", About),
-            ],
+            items: vec![MenuItem::action("关于 LightPDF", About)],
         },
     ]
 }
@@ -198,15 +193,11 @@ fn create_spanish_menus() -> Vec<Menu> {
         },
         Menu {
             name: "Favoritos".into(),
-            items: vec![
-                MenuItem::action("Agregar a favoritos", AddToFavorites),
-            ],
+            items: vec![MenuItem::action("Agregar a favoritos", AddToFavorites)],
         },
         Menu {
             name: "Ayuda".into(),
-            items: vec![
-                MenuItem::action("Acerca de LightPDF", About),
-            ],
+            items: vec![MenuItem::action("Acerca de LightPDF", About)],
         },
     ]
 }

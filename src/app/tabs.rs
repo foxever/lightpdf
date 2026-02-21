@@ -1,6 +1,6 @@
+use crate::pdf::PdfDocument;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use crate::pdf::PdfDocument;
 
 #[derive(Clone)]
 pub struct Tab {
@@ -33,7 +33,8 @@ impl Tab {
     }
 
     pub fn file_name(&self) -> String {
-        self.path.file_name()
+        self.path
+            .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| String::from("Untitled"))
     }
@@ -72,14 +73,18 @@ impl TabManager {
     pub fn close_tab(&self, tab_id: usize) {
         let mut tabs = self.tabs.lock().unwrap();
         let index = tabs.iter().position(|t| t.id == tab_id);
-        
+
         if let Some(index) = index {
             tabs.remove(index);
-            
+
             let mut active_id = self.active_tab_id.lock().unwrap();
             if Some(tab_id) == *active_id {
                 if !tabs.is_empty() {
-                    let new_index = if index < tabs.len() { index } else { tabs.len() - 1 };
+                    let new_index = if index < tabs.len() {
+                        index
+                    } else {
+                        tabs.len() - 1
+                    };
                     *active_id = Some(tabs[new_index].id);
                 } else {
                     *active_id = None;

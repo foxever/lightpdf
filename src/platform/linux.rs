@@ -8,7 +8,7 @@ impl PlatformAdapter for LinuxPlatform {
         // TODO: 实现 Linux 文件对话框
         None
     }
-    
+
     fn register_shortcuts() {
         // TODO: 注册 Linux 快捷键
     }

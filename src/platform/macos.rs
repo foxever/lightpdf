@@ -8,7 +8,7 @@ impl PlatformAdapter for MacOSPlatform {
         // TODO: 实现 macOS 文件对话框
         None
     }
-    
+
     fn register_shortcuts() {
         // TODO: 注册 macOS 快捷键
     }

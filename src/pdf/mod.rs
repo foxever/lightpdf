@@ -37,7 +37,9 @@ impl PdfDocument {
                 if lib_path.exists() {
                     return Pdfium::bind_to_library(lib_path)
                         .map(Pdfium::new)
-                        .map_err(|e| PdfError::OpenError(format!("Failed to bind to Pdfium library: {}", e)));
+                        .map_err(|e| {
+                            PdfError::OpenError(format!("Failed to bind to Pdfium library: {}", e))
+                        });
                 }
             }
         }
@@ -53,15 +55,13 @@ impl PdfDocument {
 
         let pdfium = Self::get_pdfium()?;
 
-        let doc = pdfium.load_pdf_from_file(&path_str, None)
+        let doc = pdfium
+            .load_pdf_from_file(&path_str, None)
             .map_err(|e| PdfError::OpenError(format!("Failed to load PDF: {}", e)))?;
 
         let page_count = doc.pages().len() as usize;
 
-        Ok(Self {
-            path,
-            page_count,
-        })
+        Ok(Self { path, page_count })
     }
 
     pub fn page_count(&self) -> usize {
@@ -80,26 +80,28 @@ impl PdfDocument {
         let path_str = self.path.to_string_lossy().to_string();
 
         let pdfium = Self::get_pdfium()?;
-        let doc = pdfium.load_pdf_from_file(&path_str, None)
+        let doc = pdfium
+            .load_pdf_from_file(&path_str, None)
             .map_err(|e| PdfError::RenderError(format!("Failed to load PDF: {}", e)))?;
 
-        let page = doc.pages().get(page_num as PdfPageIndex)
-            .map_err(|e| PdfError::RenderError(format!("Failed to load page {}: {}", page_num, e)))?;
+        let page = doc.pages().get(page_num as PdfPageIndex).map_err(|e| {
+            PdfError::RenderError(format!("Failed to load page {}: {}", page_num, e))
+        })?;
 
         let size = page.page_size();
         let height = size.height().value;
 
-        let render_config = PdfRenderConfig::new()
-            .set_target_height((height * zoom) as i32);
+        let render_config = PdfRenderConfig::new().set_target_height((height * zoom) as i32);
 
-        let bitmap = page.render_with_config(&render_config)
+        let bitmap = page
+            .render_with_config(&render_config)
             .map_err(|e| PdfError::RenderError(format!("Failed to render page: {}", e)))?;
 
         let data = bitmap.as_rgba_bytes().to_vec();
-        
+
         let width = bitmap.width() as u32;
         let height = bitmap.height() as u32;
-        
+
         let mut rgba_data = Vec::with_capacity(data.len());
         for chunk in data.chunks_exact(4) {
             let b = chunk[0];
@@ -123,11 +125,13 @@ impl PdfDocument {
         let path_str = self.path.to_string_lossy().to_string();
 
         let pdfium = Self::get_pdfium()?;
-        let doc = pdfium.load_pdf_from_file(&path_str, None)
+        let doc = pdfium
+            .load_pdf_from_file(&path_str, None)
             .map_err(|e| PdfError::RenderError(format!("Failed to load PDF: {}", e)))?;
 
-        let page = doc.pages().get(page_num as PdfPageIndex)
-            .map_err(|e| PdfError::RenderError(format!("Failed to load page {}: {}", page_num, e)))?;
+        let page = doc.pages().get(page_num as PdfPageIndex).map_err(|e| {
+            PdfError::RenderError(format!("Failed to load page {}: {}", page_num, e))
+        })?;
 
         let size = page.page_size();
         Ok((size.width().value, size.height().value))
@@ -138,14 +142,16 @@ impl PdfDocument {
         let path_str = self.path.to_string_lossy().to_string();
 
         let pdfium = Self::get_pdfium()?;
-        let doc = pdfium.load_pdf_from_file(&path_str, None)
+        let doc = pdfium
+            .load_pdf_from_file(&path_str, None)
             .map_err(|e| PdfError::OpenError(format!("Failed to load PDF: {}", e)))?;
 
         let bookmarks = doc.bookmarks();
 
         fn convert_bookmarks<'a>(bookmark: &PdfBookmark<'a>) -> OutlineItem {
             let title = bookmark.title().unwrap_or_else(|| String::from(""));
-            let page = bookmark.destination()
+            let page = bookmark
+                .destination()
                 .and_then(|dest| dest.page_index().ok())
                 .map(|idx| idx as usize)
                 .unwrap_or(0);

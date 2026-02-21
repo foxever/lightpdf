@@ -1,10 +1,10 @@
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use serde::{Serialize, Deserialize};
+use crate::app::tabs::{Tab, TabManager};
+use crate::i18n::{I18n, Language};
 use crate::pdf::loader::PdfLoader;
 use crate::theme::Theme;
-use crate::i18n::{Language, I18n};
-use crate::app::tabs::{Tab, TabManager};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ScrollMode {
@@ -57,17 +57,17 @@ impl AppState {
     pub fn open_file_new_tab(&self, path: PathBuf) -> anyhow::Result<usize> {
         let pdf_doc = PdfLoader::open(&path)?;
         let tab_id = self.tabs.create_tab(path.clone());
-        
+
         let pdf_doc_arc = Arc::new(pdf_doc);
         let page_count = pdf_doc_arc.page_count();
         let outline = pdf_doc_arc.get_outline().ok();
-        
+
         self.tabs.update_tab(tab_id, |tab| {
             tab.doc = Some(pdf_doc_arc.clone());
             tab.page_count = page_count;
             tab.outline_items = outline;
         });
-        
+
         let mut config = self.config.lock().unwrap();
         let path_str = path.to_string_lossy().to_string();
         if !config.recent_files.contains(&path_str) {
@@ -76,7 +76,7 @@ impl AppState {
                 config.recent_files.pop();
             }
         }
-        
+
         self.save_config(&config);
         Ok(tab_id)
     }
@@ -94,7 +94,9 @@ impl AppState {
     }
 
     pub fn get_active_tab(&self) -> Option<Tab> {
-        self.tabs.get_active_tab().and_then(|id| self.tabs.get_tab(id))
+        self.tabs
+            .get_active_tab()
+            .and_then(|id| self.tabs.get_tab(id))
     }
 
     pub fn update_active_tab<F>(&self, f: F)

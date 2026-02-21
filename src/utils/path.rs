@@ -1,4 +1,4 @@
-use dirs_next::{config_dir, cache_dir};
+use dirs_next::{cache_dir, config_dir};
 use std::path::PathBuf;
 
 const APP_NAME: &str = "lightpdf";
@@ -29,14 +29,14 @@ pub fn get_bookmarks_path() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_config_path() {
         let path = get_config_path();
         assert!(path.to_string_lossy().contains(APP_NAME));
         assert!(path.to_string_lossy().contains("config.json"));
     }
-    
+
     #[test]
     fn test_cache_dir() {
         let path = get_cache_dir();

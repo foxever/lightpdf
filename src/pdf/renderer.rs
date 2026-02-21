@@ -1,4 +1,4 @@
-use super::{PdfDocument, Result, PdfError};
+use super::{PdfDocument, PdfError, Result};
 use image::{DynamicImage, RgbaImage};
 
 pub struct PageRenderer;
@@ -13,20 +13,29 @@ impl PageRenderer {
         let (rgba_data, width, height) = doc.render_page(page_num, zoom)?;
 
         // 创建图像
-        let image = RgbaImage::from_raw(width, height, rgba_data)
-            .ok_or_else(|| PdfError::RenderError("Failed to create image from raw data".to_string()))?;
+        let image = RgbaImage::from_raw(width, height, rgba_data).ok_or_else(|| {
+            PdfError::RenderError("Failed to create image from raw data".to_string())
+        })?;
 
         Ok(DynamicImage::ImageRgba8(image))
     }
 
     /// 计算适应宽度的缩放比例
-    pub fn calculate_zoom_to_fit_width(doc: &PdfDocument, page_num: usize, viewport_width: f32) -> Result<f32> {
+    pub fn calculate_zoom_to_fit_width(
+        doc: &PdfDocument,
+        page_num: usize,
+        viewport_width: f32,
+    ) -> Result<f32> {
         let (page_width, _) = doc.get_page_size(page_num)?;
         Ok(viewport_width / page_width)
     }
 
     /// 计算适应高度的缩放比例
-    pub fn calculate_zoom_to_fit_height(doc: &PdfDocument, page_num: usize, viewport_height: f32) -> Result<f32> {
+    pub fn calculate_zoom_to_fit_height(
+        doc: &PdfDocument,
+        page_num: usize,
+        viewport_height: f32,
+    ) -> Result<f32> {
         let (_, page_height) = doc.get_page_size(page_num)?;
         Ok(viewport_height / page_height)
     }
