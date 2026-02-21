@@ -55,11 +55,13 @@ make build-all    # All platforms
 | Action | Control |
 |--------|---------|
 | Open file | Click 📂 button |
-| Navigate | ◀ / ▶ buttons |
+| Navigate | ◀ / ▶ buttons, ←/→ arrow keys |
+| Scroll | Mouse wheel, click left/right 1/3 of page |
 | Zoom | − / + buttons |
 | Rotate | ↻ / ↺ buttons |
 | Theme | Click moon/sun icon |
 | Language | Click flag icon |
+| Fullscreen | Menu → View → Fullscreen |
 
 ## Roadmap
 
@@ -71,11 +73,14 @@ make build-all    # All platforms
 - [x] Light/dark themes
 - [x] Multi-language support
 - [x] Cross-platform CI/CD
+- [x] Keyboard navigation (arrow keys)
+- [x] Mouse wheel scrolling
+- [x] Click-to-navigate
+- [x] Full-screen mode
 
 ### TODO
 - [ ] Bookmarks
 - [ ] Recent files
-- [ ] Full-screen mode
 - [ ] Drag & drop
 - [ ] Print support
 - [ ] Search
