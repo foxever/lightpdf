@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <filter id="shadow3" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+    
+    <rect width="512" height="512" rx="104" fill="#2d3436"/>
+    
+    <rect x="181" y="181" width="160" height="200" rx="8" fill="#ffffff" opacity="0.4"/>
+    <rect x="201" y="201" width="160" height="200" rx="8" fill="#ffffff" opacity="0.7"/>
+    
+    <g filter="url(#shadow3)">
+        <rect x="221" y="221" width="160" height="200" rx="8" fill="#ffffff"/>
+        <text x="301" y="341" font-family="Arial, sans-serif" font-size="36" font-weight="800" fill="#2d3436" text-anchor="middle">PDF</text>
+    </g>
+</svg>

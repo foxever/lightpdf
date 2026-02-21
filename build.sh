@@ -154,6 +154,7 @@ package_macos() {
     local app_bundle="$DIST_DIR/$app_name-$arch.app"
     local binary="$TARGET_DIR/$target/release/lightpdf"
     local libpdfium="$PROJECT_DIR/lib/libpdfium.dylib"
+    local icon_svg="$PROJECT_DIR/resources/icon.svg"
     
     # Clean and create app bundle
     rm -rf "$app_bundle"
@@ -167,6 +168,17 @@ package_macos() {
     # Copy libpdfium
     if [ -f "$libpdfium" ]; then
         cp "$libpdfium" "$app_bundle/Contents/MacOS/"
+    fi
+    
+    # Copy icon resources
+    if [ -f "$icon_svg" ]; then
+        cp "$icon_svg" "$app_bundle/Contents/Resources/icon.svg"
+    fi
+    
+    # Try to copy .icns if available
+    local icns_file="$PROJECT_DIR/resources/macos/icon.icns"
+    if [ -f "$icns_file" ]; then
+        cp "$icns_file" "$app_bundle/Contents/Resources/icon.icns"
     fi
     
     # Create Info.plist
@@ -191,6 +203,8 @@ package_macos() {
     <true/>
     <key>LSMinimumSystemVersion</key>
     <string>10.13</string>
+    <key>CFBundleIconFile</key>
+    <string>icon</string>
 </dict>
 </plist>
 EOF
@@ -222,9 +236,11 @@ package_linux() {
     local binary="$TARGET_DIR/$target/release/lightpdf"
     local package_dir="$DIST_DIR/lightpdf-linux-$arch"
     local libpdfium="$PROJECT_DIR/lib/libpdfium.so"
+    local icon_svg="$PROJECT_DIR/resources/icon.svg"
     
     rm -rf "$package_dir"
     mkdir -p "$package_dir"
+    mkdir -p "$package_dir/icons"
     
     cp "$binary" "$package_dir/"
     chmod +x "$package_dir/lightpdf"
@@ -234,10 +250,35 @@ package_linux() {
         cp "$libpdfium" "$package_dir/"
     fi
     
+    # Copy icon resources
+    if [ -f "$icon_svg" ]; then
+        cp "$icon_svg" "$package_dir/icons/icon.svg"
+    fi
+    
+    # Copy PNG icons if available
+    for size in 16 32 48 128 256; do
+        local png_icon="$PROJECT_DIR/resources/linux/icon_${size}x${size}.png"
+        if [ -f "$png_icon" ]; then
+            cp "$png_icon" "$package_dir/icons/"
+        fi
+    done
+    
     # Copy licenses if exists
     if [ -d "$PROJECT_DIR/licenses" ]; then
         cp -r "$PROJECT_DIR/licenses" "$package_dir/"
     fi
+    
+    # Create desktop entry
+    cat > "$package_dir/lightpdf.desktop" << EOF
+[Desktop Entry]
+Name=LightPDF
+Comment=A lightweight, cross-platform PDF reader
+Exec=lightpdf
+Icon=lightpdf
+Terminal=false
+Type=Application
+Categories=Office;Viewer;
+EOF
     
     # Create README
     cat > "$package_dir/README.txt" << EOF
@@ -262,9 +303,11 @@ package_windows() {
     local binary="$TARGET_DIR/$target/release/lightpdf.exe"
     local package_dir="$DIST_DIR/lightpdf-windows-x86_64"
     local libpdfium="$PROJECT_DIR/lib/pdfium.dll"
+    local icon_svg="$PROJECT_DIR/resources/icon.svg"
     
     rm -rf "$package_dir"
     mkdir -p "$package_dir"
+    mkdir -p "$package_dir/icons"
     
     cp "$binary" "$package_dir/"
     
@@ -272,6 +315,25 @@ package_windows() {
     if [ -f "$libpdfium" ]; then
         cp "$libpdfium" "$package_dir/"
     fi
+    
+    # Copy icon resources
+    if [ -f "$icon_svg" ]; then
+        cp "$icon_svg" "$package_dir/icons/icon.svg"
+    fi
+    
+    # Try to copy .ico if available
+    local ico_file="$PROJECT_DIR/resources/windows/icon.ico"
+    if [ -f "$ico_file" ]; then
+        cp "$ico_file" "$package_dir/icon.ico"
+    fi
+    
+    # Copy PNG icons if available
+    for size in 16 32 48 256; do
+        local png_icon="$PROJECT_DIR/resources/windows/icon_${size}x${size}.png"
+        if [ -f "$png_icon" ]; then
+            cp "$png_icon" "$package_dir/icons/"
+        fi
+    done
     
     # Create README
     cat > "$package_dir/README.txt" << EOF
