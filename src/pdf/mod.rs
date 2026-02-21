@@ -175,6 +175,67 @@ impl PdfDocument {
 
         Ok(items)
     }
+
+    /// Extract text from a specific page
+    pub fn extract_text(&self, page_num: usize) -> Result<String> {
+        if page_num >= self.page_count {
+            return Err(PdfError::InvalidPage(page_num));
+        }
+
+        let path_str = self.path.to_string_lossy().to_string();
+
+        let pdfium = Self::get_pdfium()?;
+        let doc = pdfium
+            .load_pdf_from_file(&path_str, None)
+            .map_err(|e| PdfError::OpenError(format!("Failed to load PDF: {}", e)))?;
+
+        let page = doc.pages().get(page_num as PdfPageIndex).map_err(|e| {
+            PdfError::RenderError(format!("Failed to load page {}: {}", page_num, e))
+        })?;
+
+        let text = page
+            .text()
+            .map_err(|e| PdfError::RenderError(format!("Failed to extract text: {}", e)))?;
+
+        Ok(text.all().to_string())
+    }
+
+    /// Search for text in the document
+    pub fn search_text(&self, query: &str) -> Result<Vec<SearchResult>> {
+        let mut results = Vec::new();
+
+        for page_num in 0..self.page_count {
+            if let Ok(text) = self.extract_text(page_num) {
+                if text.to_lowercase().contains(&query.to_lowercase()) {
+                    results.push(SearchResult {
+                        page: page_num,
+                        preview: self.extract_preview(&text, query),
+                    });
+                }
+            }
+        }
+
+        Ok(results)
+    }
+
+    fn extract_preview(&self, text: &str, query: &str) -> String {
+        let query_lower = query.to_lowercase();
+        let text_lower = text.to_lowercase();
+
+        if let Some(pos) = text_lower.find(&query_lower) {
+            let start = pos.saturating_sub(30);
+            let end = (pos + query.len() + 30).min(text.len());
+            let preview = &text[start..end];
+
+            if start > 0 {
+                format!("...{}", preview)
+            } else {
+                preview.to_string()
+            }
+        } else {
+            text.chars().take(60).collect()
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -182,6 +243,12 @@ pub struct OutlineItem {
     pub title: String,
     pub page: usize,
     pub children: Vec<OutlineItem>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SearchResult {
+    pub page: usize,
+    pub preview: String,
 }
 
 #[cfg(test)]
