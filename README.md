@@ -81,15 +81,15 @@ make build-all    # All platforms
 ### TODO
 
 #### Core Features
-- [ ] Search (text search within PDF)
+- [x] Search (text search API implemented, UI needs dialog)
 - [ ] Bookmarks (save page positions)
-- [ ] Recent files (quick access)
+- [x] Recent files (quick access)
 - [ ] Drag & drop (open files)
 - [ ] Print support
 
 #### Navigation
-- [ ] Page thumbnails sidebar
-- [ ] Go to page (jump to specific page)
+- [x] Page thumbnails sidebar (text list)
+- [ ] Go to page (jump to specific page, needs dialog)
 - [ ] Previous/Next document
 
 #### Display
