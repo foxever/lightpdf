@@ -84,45 +84,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p lib
-          echo "Downloading pdfium library from ${{ matrix.pdfium_url }}"
           curl -L -o pdfium.tgz "${{ matrix.pdfium_url }}"
-          
-          echo "Extracting pdfium package..."
           tar -xzf pdfium.tgz
-          
-          echo "Looking for library files in extracted package..."
-          find . -type f \( -name "*.dylib" -o -name "*.so" -o -name "*.dll" \) 2>/dev/null
-          
-          FOUND_LIB=""
-          if [ -f "lib/${{ matrix.pdfium_lib }}" ]; then
-            FOUND_LIB="lib/${{ matrix.pdfium_lib }}"
-            echo "Found in lib/: $FOUND_LIB"
-          elif [ -f "bin/${{ matrix.pdfium_lib }}" ]; then
-            FOUND_LIB="bin/${{ matrix.pdfium_lib }}"
-            cp "$FOUND_LIB" lib/
-            echo "Found in bin/: $FOUND_LIB -> lib/"
-          elif [ -f "${{ matrix.pdfium_lib }}" ]; then
-            FOUND_LIB="${{ matrix.pdfium_lib }}"
-            cp "$FOUND_LIB" lib/
-            echo "Found in root: $FOUND_LIB -> lib/"
-          else
-            FOUND_LIB=$(find . -type f -name "${{ matrix.pdfium_lib }}" 2>/dev/null | head -1)
-            if [ -n "$FOUND_LIB" ]; then
-              cp "$FOUND_LIB" lib/
-              echo "Found via search: $FOUND_LIB -> lib/"
-            fi
-          fi
-          
-          echo "Contents of lib/ directory:"
+          find . -type f \( -name "*.dylib" -o -name "*.so" -o -name "*.dll" \) -exec mv {} lib/ \; 2>/dev/null || true
           ls -la lib/
-          
-          if [ ! -f "lib/${{ matrix.pdfium_lib }}" ]; then
-            echo "ERROR: ${{ matrix.pdfium_lib }} not found in lib/ directory!"
-            echo "Available files:"
-            find . -type f \( -name "*.dylib" -o -name "*.so" -o -name "*.dll" \) 2>/dev/null
-            exit 1
-          fi
-          echo "Successfully prepared ${{ matrix.pdfium_lib }}"
 
       - name: Build release (cross)
         if: matrix.use_cross == true
@@ -136,9 +101,10 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: |
           APP_NAME="LightPDF"
-          APP_BUNDLE="dist/${APP_NAME}-${{ matrix.name }}.app"
+          APP_BUNDLE="dist/${APP_NAME}.app"
           BINARY="target/${{ matrix.target }}/release/lightpdf"
           
+          rm -rf "$APP_BUNDLE"
           mkdir -p "$APP_BUNDLE/Contents/MacOS"
           mkdir -p "$APP_BUNDLE/Contents/Resources"
           
@@ -157,7 +123,7 @@ jobs:
               <key>CFBundleExecutable</key>
               <string>lightpdf</string>
               <key>CFBundleIdentifier</key>
-              <string>com.example.lightpdf</string>
+              <string>com.lightpdf.app</string>
               <key>CFBundleName</key>
               <string>LightPDF</string>
               <key>CFBundlePackageType</key>
@@ -173,12 +139,16 @@ jobs:
           </dict>
           </plist>
           EOF
-
+          
+          # Create DMG
+          hdiutil create -volname "LightPDF" -srcfolder "$APP_BUNDLE" -ov -format UDZO -o "dist/LightPDF-${{ matrix.name }}.dmg"
+          
+          # Also create ZIP
           cd dist
-          zip -r "../lightpdf-${{ matrix.name }}.zip" "${APP_NAME}-${{ matrix.name }}.app"
+          zip -r "../LightPDF-${{ matrix.name }}.zip" "${APP_NAME}.app"
           cd ..
 
-      - name: Package Linux
+      - name: Package Linux AppImage
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           PACKAGE_DIR="dist/lightpdf-${{ matrix.name }}"
@@ -192,15 +162,53 @@ jobs:
             cp "lib/${{ matrix.pdfium_lib }}" "$PACKAGE_DIR/"
           fi
           
-          cat > "$PACKAGE_DIR/README.txt" << 'EOF'
-          LightPDF - A lightweight, cross-platform PDF reader
+          # Create AppDir structure for AppImage
+          APPDIR="LightPDF.AppDir"
+          mkdir -p "$APPDIR/usr/bin"
+          mkdir -p "$APPDIR/usr/lib"
+          mkdir -p "$APPDIR/apprun/graphics"
           
-          Usage:
-            ./lightpdf [PDF file]
+          cp "$PACKAGE_DIR/lightpdf" "$APPDIR/usr/bin/"
+          if [ -f "lib/${{ matrix.pdfium_lib }}" ]; then
+            cp "lib/${{ matrix.pdfium_lib }}" "$APPDIR/usr/lib/"
+          fi
+          
+          # Create AppRun
+          cat > "$APPDIR/AppRun" << 'EOF'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          DIR=$(dirname "$SELF")
+          export PATH="$DIR/usr/bin:$PATH"
+          export LD_LIBRARY_PATH="$DIR/usr/lib:$LD_LIBRARY_PATH"
+          exec "$DIR/usr/bin/lightpdf" "$@"
+          EOF
+          chmod +x "$APPDIR/AppRun"
+          
+          # Create desktop file
+          cat > "$APPDIR/lightpdf.desktop" << 'EOF'
+          [Desktop Entry]
+          Name=LightPDF
+          Comment=A lightweight PDF reader
+          Exec=lightpdf
+          Icon=lightpdf
+          Terminal=false
+          Type=Application
+          Categories=Office;Viewer;
           EOF
           
+          # Copy icon if available
+          if [ -f "resources/icon.svg" ]; then
+            cp "resources/icon.svg" "$APPDIR/apprun/graphics/"
+          fi
+          
+          # Create AppImage if appimagetool is available
+          if command -v appimagetool &> /dev/null; then
+            appimagetool "$APPDIR" "dist/LightPDF-${{ matrix.name }}.AppImage"
+          fi
+          
+          # Create tarball
           cd dist
-          zip -r "../lightpdf-${{ matrix.name }}.zip" "lightpdf-${{ matrix.name }}"
+          tar -czvf "../LightPDF-${{ matrix.name }}.tar.gz" "lightpdf-${{ matrix.name }}"
           cd ..
 
       - name: Package Windows
@@ -217,27 +225,23 @@ jobs:
             cp "lib/${{ matrix.pdfium_lib }}" "$PACKAGE_DIR/"
           fi
           
-          # Copy icon if available
           if [ -f "resources/windows/icon.ico" ]; then
             cp "resources/windows/icon.ico" "$PACKAGE_DIR/"
           fi
           
-          cat > "$PACKAGE_DIR/README.txt" << 'EOF'
-          LightPDF - A lightweight, cross-platform PDF reader
-          
-          Usage:
-            lightpdf.exe [PDF file]
-          EOF
-          
           cd dist
-          7z a -tzip "../lightpdf-${{ matrix.name }}.zip" "lightpdf-${{ matrix.name }}"
+          zip -r "../LightPDF-${{ matrix.name }}.zip" "lightpdf-${{ matrix.name }}"
           cd ..
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: lightpdf-${{ matrix.name }}
-          path: lightpdf-${{ matrix.name }}.zip
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.tar.gz
 
   release:
     name: Create Release
@@ -253,14 +257,15 @@ jobs:
         with:
           path: artifacts
 
-      - name: List downloaded artifacts
-        run: ls -la artifacts/
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: LightPDF ${{ github.ref_name }}
-          files: artifacts/*/*.zip
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+            artifacts/**/*.tar.gz
           draft: false
           prerelease: false
           generate_release_notes: true
