@@ -91,6 +91,13 @@ impl I18n {
             "welcome_message" => "Open a PDF file to start reading".to_string(),
             "scroll_mode_page" => "Page".to_string(),
             "scroll_mode_smooth" => "Smooth".to_string(),
+            "menu_print" => "Print...".to_string(),
+            "menu_print_preview" => "Print Preview".to_string(),
+            "print_title" => "Print".to_string(),
+            "print_preview_title" => "Print Preview".to_string(),
+            "print_no_printer" => "No printer available".to_string(),
+            "print_error" => "Print error".to_string(),
+            "print_success" => "Print job sent successfully".to_string(),
             _ => key.to_string(),
         }
     }
@@ -136,6 +143,13 @@ impl I18n {
             "welcome_message" => "打开 PDF 文件开始阅读".to_string(),
             "scroll_mode_page" => "页".to_string(),
             "scroll_mode_smooth" => "平滑".to_string(),
+            "menu_print" => "打印...".to_string(),
+            "menu_print_preview" => "打印预览".to_string(),
+            "print_title" => "打印".to_string(),
+            "print_preview_title" => "打印预览".to_string(),
+            "print_no_printer" => "没有可用的打印机".to_string(),
+            "print_error" => "打印错误".to_string(),
+            "print_success" => "打印任务已发送".to_string(),
             _ => key.to_string(),
         }
     }
@@ -181,6 +195,13 @@ impl I18n {
             "welcome_message" => "Abre un archivo PDF para comenzar a leer".to_string(),
             "scroll_mode_page" => "Página".to_string(),
             "scroll_mode_smooth" => "Suave".to_string(),
+            "menu_print" => "Imprimir...".to_string(),
+            "menu_print_preview" => "Vista previa de impresión".to_string(),
+            "print_title" => "Imprimir".to_string(),
+            "print_preview_title" => "Vista previa de impresión".to_string(),
+            "print_no_printer" => "No hay impresora disponible".to_string(),
+            "print_error" => "Error de impresión".to_string(),
+            "print_success" => "Trabajo de impresión enviado".to_string(),
             _ => key.to_string(),
         }
     }

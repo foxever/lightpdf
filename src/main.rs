@@ -5,12 +5,14 @@ use std::sync::Arc;
 mod app;
 mod i18n;
 mod pdf;
+mod print;
 mod theme;
 mod utils;
 
 use app::menu::{
-    FirstPage, FitPage, FitWidth, FullScreen, LastPage, NextPage, PrevPage, Quit, ResetZoom,
-    RotateClockwise, RotateCounterClockwise, ToggleSidebar, ToggleTheme, ZoomIn, ZoomOut,
+    FirstPage, FitPage, FitWidth, FullScreen, LastPage, NextPage, PrevPage, Print, PrintPreview,
+    Quit, ResetZoom, RotateClockwise, RotateCounterClockwise, ToggleSidebar, ToggleTheme, ZoomIn,
+    ZoomOut,
 };
 use app::PdfReaderApp;
 use gpui::{prelude::*, App, Application, Menu, MenuItem, SystemMenuType, WindowHandle};
@@ -44,9 +46,9 @@ fn main() {
 
         cx.set_menus(full_menus);
 
+        #[cfg(target_os = "macos")]
         let titlebar_options = gpui::TitlebarOptions {
             title: Some("LingPDF".into()),
-            #[cfg(target_os = "macos")]
             appears_transparent: true,
             ..Default::default()
         };
@@ -56,7 +58,10 @@ fn main() {
         let window_handle: WindowHandle<PdfReaderApp> = cx
             .open_window(
                 gpui::WindowOptions {
+                    #[cfg(target_os = "macos")]
                     titlebar: Some(titlebar_options),
+                    #[cfg(not(target_os = "macos"))]
+                    titlebar: None,
                     window_bounds: Some(gpui::WindowBounds::Windowed(gpui::Bounds::centered(
                         None,
                         gpui::Size::new(gpui::px(1200.0), gpui::px(800.0)),
@@ -204,6 +209,22 @@ fn main() {
             window_handle
                 .update(cx, |_app, window, _cx| {
                     window.toggle_fullscreen();
+                })
+                .ok();
+        });
+
+        cx.on_action(move |_: &Print, cx: &mut App| {
+            window_handle
+                .update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                    app.print(cx);
+                })
+                .ok();
+        });
+
+        cx.on_action(move |_: &PrintPreview, cx: &mut App| {
+            window_handle
+                .update(cx, |app: &mut PdfReaderApp, _window, cx| {
+                    app.print_preview(cx);
                 })
                 .ok();
         });

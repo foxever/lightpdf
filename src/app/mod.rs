@@ -1,3 +1,4 @@
+use crate::print::show_print_dialog;
 use crate::theme::ThemeColors;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -74,12 +75,8 @@ impl PdfReaderApp {
     }
 
     pub fn open_file_in_new_tab(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
-        let path_str = path.to_string_lossy().to_string();
-        log::info!("Opening file in new tab: {}", path_str);
-
         match self.state.open_file_new_tab(path) {
             Ok(tab_id) => {
-                log::info!("File opened in tab {}", tab_id);
                 self.show_sidebar = true;
                 self.render_current_tab_page(tab_id, cx);
                 cx.notify();
@@ -102,28 +99,21 @@ impl PdfReaderApp {
     }
 
     pub fn open_file_dialog(&mut self, cx: &mut Context<Self>) {
-        let options = PathPromptOptions {
-            files: true,
-            directories: false,
-            multiple: false,
-            prompt: Some("选择 PDF 文件".into()),
-        };
+        cx.spawn(async move |this: WeakEntity<Self>, cx| {
+            let file = rfd::AsyncFileDialog::new()
+                .add_filter("PDF Files", &["pdf"])
+                .set_title("选择 PDF 文件")
+                .pick_file()
+                .await;
 
-        let receiver = cx.prompt_for_paths(options);
-
-        cx.spawn(
-            async move |this: WeakEntity<Self>, cx| match receiver.await {
-                Ok(Ok(Some(paths))) => {
-                    if let Some(path) = paths.into_iter().next() {
-                        this.update(cx, |this: &mut Self, cx: &mut Context<Self>| {
-                            this.open_file_in_new_tab(path, cx);
-                        })
-                        .ok();
-                    }
-                }
-                _ => {}
-            },
-        )
+            if let Some(file) = file {
+                let path = file.path().to_path_buf();
+                this.update(cx, |this: &mut Self, cx: &mut Context<Self>| {
+                    this.open_file_in_new_tab(path, cx);
+                })
+                .ok();
+            }
+        })
         .detach();
     }
 
@@ -241,6 +231,43 @@ impl PdfReaderApp {
         self.state.set_theme(new_theme);
         cx.notify();
     }
+
+    pub fn print(&mut self, cx: &mut Context<Self>) {
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            if let Some(tab) = self.state.tabs.get_tab(tab_id) {
+                if let Some(ref _pdf_doc) = tab.doc {
+                    let file_path = tab.path.clone();
+
+                    cx.spawn(async move |_this: WeakEntity<Self>, _cx| {
+                        match show_print_dialog(&file_path) {
+                            Ok(_) => {
+                                log::info!("Print dialog shown successfully");
+                            }
+                            Err(e) => {
+                                log::error!("Failed to show print dialog: {}", e);
+                            }
+                        }
+                    })
+                    .detach();
+                }
+            }
+        }
+    }
+
+    pub fn print_preview(&mut self, cx: &mut Context<Self>) {
+        if let Some(tab_id) = self.state.get_active_tab_id() {
+            if let Some(tab) = self.state.tabs.get_tab(tab_id) {
+                if let Some(ref _pdf_doc) = tab.doc {
+                    let file_path = tab.path.clone();
+
+                    cx.spawn(async move |_this: WeakEntity<Self>, _cx| {
+                        let _ = crate::print::show_print_preview(&file_path);
+                    })
+                    .detach();
+                }
+            }
+        }
+    }
 }
 
 impl Render for PdfReaderApp {
@@ -257,7 +284,10 @@ impl Render for PdfReaderApp {
             .bg(colors.background)
             .track_focus(&self.focus_handle)
             .child(self.render_combined_titlebar(&tabs, active_tab_id, colors, cx))
-            .child(self.render_toolbar(active_tab_id.is_some(), colors, cx))
+            .child({
+                let has_doc = active_tab_id.is_some();
+                self.render_toolbar(has_doc, colors, cx)
+            })
             .child(
                 div()
                     .flex_1()
@@ -291,6 +321,12 @@ impl PdfReaderApp {
         colors: ThemeColors,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        // Platform-specific left padding: macOS needs space for traffic lights
+        #[cfg(target_os = "macos")]
+        let left_padding = px(70.0);
+        #[cfg(not(target_os = "macos"))]
+        let left_padding = px(8.0);
+
         let mut titlebar = div()
             .h(px(32.0))
             .w_full()
@@ -301,7 +337,13 @@ impl PdfReaderApp {
             .border_b_1()
             .border_color(colors.border)
             .px_2()
-            .child(div().w(px(70.0)));
+            // Enable window dragging on the title bar for non-macOS platforms
+            .when(cfg!(not(target_os = "macos")), |this| {
+                this.on_mouse_move(cx.listener(|_this, _event, window, _cx| {
+                    window.start_window_move();
+                }))
+            })
+            .child(div().w(left_padding));
 
         for (_i, tab) in tabs.iter().enumerate() {
             let is_active = Some(tab.id) == active_tab_id;
@@ -373,7 +415,7 @@ impl PdfReaderApp {
             );
         }
 
-        titlebar
+        titlebar = titlebar
             .child(
                 div()
                     .h(px(28.0))
@@ -393,8 +435,17 @@ impl PdfReaderApp {
                         }),
                     ),
             )
-            .child(div().flex_1())
-            .child(
+            .child(div().flex_1());
+
+        // Add window control buttons for non-macOS platforms
+        #[cfg(not(target_os = "macos"))]
+        {
+            titlebar = titlebar.child(self.render_window_controls(colors, cx));
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            titlebar = titlebar.child(
                 div()
                     .h(px(28.0))
                     .px_3()
@@ -403,6 +454,79 @@ impl PdfReaderApp {
                     .text_size(px(11.0))
                     .text_color(colors.text_secondary)
                     .child("LightPDF"),
+            );
+        }
+
+        titlebar
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn render_window_controls(
+        &self,
+        colors: ThemeColors,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_row()
+            .items_center()
+            .gap(px(2.0))
+            .child(
+                div()
+                    .h(px(20.0))
+                    .w(px(20.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .cursor_pointer()
+                    .hover(|hover| hover.bg(colors.background_secondary).rounded_sm())
+                    .text_color(colors.text_secondary)
+                    .text_size(px(12.0))
+                    .child("−")
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(|_this, _event, window, _cx| {
+                            window.minimize_window();
+                        }),
+                    ),
+            )
+            .child(
+                div()
+                    .h(px(20.0))
+                    .w(px(20.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .cursor_pointer()
+                    .hover(|hover| hover.bg(colors.background_secondary).rounded_sm())
+                    .text_color(colors.text_secondary)
+                    .text_size(px(12.0))
+                    .child("□")
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(|_this, _event, window, _cx| {
+                            window.toggle_fullscreen();
+                        }),
+                    ),
+            )
+            .child(
+                div()
+                    .h(px(20.0))
+                    .w(px(20.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .cursor_pointer()
+                    .hover(|hover| hover.bg(gpui::rgb(0xe8_11_23)).rounded_sm())
+                    .text_color(colors.text_secondary)
+                    .text_size(px(12.0))
+                    .child("×")
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(|_this, _event, _window, cx| {
+                            cx.quit();
+                        }),
+                    ),
             )
     }
 
@@ -444,13 +568,14 @@ impl PdfReaderApp {
             .bg(colors.toolbar)
             .border_b_1()
             .border_color(colors.border)
-            .child(toolbar_btn(
-                "📂",
-                colors,
-                cx.listener(|this, _event, _window, cx| {
-                    this.open_file_dialog(cx);
-                }),
-            ))
+            .child({
+                let this = cx.entity().clone();
+                toolbar_btn("📂", colors, move |_event, _window, cx| {
+                    let _ = this.update(cx, |this, cx| {
+                        this.open_file_dialog(cx);
+                    });
+                })
+            })
             .child(div().w(px(4.0)))
             .child(toolbar_btn_enabled(
                 "◀",
@@ -565,6 +690,27 @@ impl PdfReaderApp {
                     cx.notify();
                 }),
             ))
+            .child(div().w(px(4.0)))
+            .child({
+                let this = cx.entity().clone();
+                if has_doc {
+                    toolbar_btn("🖨️", colors, move |_event, _window, cx| {
+                        let _ = this.update(cx, |this, cx| {
+                            this.print(cx);
+                        });
+                    })
+                    .into_any_element()
+                } else {
+                    div()
+                        .px_2()
+                        .py(px(2.0))
+                        .rounded_sm()
+                        .child(div().text_size(px(12.0)).child("🖨️".to_string()))
+                        .bg(colors.background_secondary)
+                        .text_color(colors.text_secondary)
+                        .into_any_element()
+                }
+            })
             .child(div().w(px(4.0)))
             .child(toolbar_btn_enabled(
                 scroll_emoji,
@@ -1052,23 +1198,20 @@ fn toolbar_btn_enabled<F>(
     enabled: bool,
     colors: ThemeColors,
     on_click: F,
-) -> impl IntoElement
+) -> AnyElement
 where
     F: Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
 {
-    let base = div()
-        .px_2()
-        .py(px(2.0))
-        .rounded_sm()
-        .child(div().text_size(px(12.0)).child(label.to_string()));
-
     if enabled {
-        base.bg(colors.background_tertiary)
-            .text_color(colors.text)
-            .cursor_pointer()
-            .on_mouse_down(MouseButton::Left, on_click)
+        toolbar_btn(label, colors, on_click).into_any_element()
     } else {
-        base.bg(colors.background_secondary)
+        div()
+            .px_2()
+            .py(px(2.0))
+            .rounded_sm()
+            .child(div().text_size(px(12.0)).child(label.to_string()))
+            .bg(colors.background_secondary)
             .text_color(colors.text_secondary)
+            .into_any_element()
     }
 }

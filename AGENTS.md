@@ -107,6 +107,7 @@ AI: Implement approved changes
 - **Batch changes**: Multiple untested features at once
 - **Ignoring warnings**: Leaving issues for later
 - **Copy-paste coding**: Duplicating code instead of abstracting
+- **External app dependencies**: Calling external applications (like browsers, system tools) to implement features. Features should be self-contained within the application
 
 ## Project-Specific Guidelines
 
