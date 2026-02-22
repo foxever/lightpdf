@@ -1,9 +1,15 @@
 use crate::print::{PrintError, PrintSettings, Printer, PrinterInfo, Result};
 use std::path::PathBuf;
 
+#[cfg(target_os = "macos")]
+use objc::runtime::Object;
+#[cfg(target_os = "macos")]
+use objc::{class, msg_send, sel, sel_impl};
+
 pub struct MacOSPrinter;
 
 impl MacOSPrinter {
+    #[allow(dead_code)]
     fn print_pdf_native(
         pdf_path: &PathBuf,
         settings: &PrintSettings,
@@ -11,11 +17,9 @@ impl MacOSPrinter {
     ) -> Result<()> {
         use std::process::Command;
 
-        // Get printer name
         let printer = if let Some(name) = printer_name {
             name.to_string()
         } else {
-            // Get default printer using lpstat
             let output = Command::new("lpstat")
                 .args(&["-d"])
                 .output()
@@ -29,7 +33,6 @@ impl MacOSPrinter {
             output
         };
 
-        // Build lp command with native options
         let mut cmd = Command::new("lp");
         cmd.arg("-d").arg(&printer);
 
@@ -84,6 +87,84 @@ impl MacOSPrinter {
         }
 
         Ok(())
+    }
+
+    #[cfg(target_os = "macos")]
+    fn show_native_print_dialog(pdf_path: &PathBuf) -> Result<()> {
+        use std::ffi::CString;
+
+        let path_str = pdf_path
+            .to_str()
+            .ok_or_else(|| PrintError::PrintError("Invalid PDF path".to_string()))?;
+
+        unsafe {
+            let path_cstr = CString::new(path_str)
+                .map_err(|_| PrintError::PrintError("Invalid path encoding".to_string()))?;
+
+            let ns_string: *mut Object =
+                msg_send![class!(NSString), stringWithUTF8String: path_cstr.as_ptr()];
+            if ns_string.is_null() {
+                return Err(PrintError::PrintError(
+                    "Failed to create NSString".to_string(),
+                ));
+            }
+
+            let ns_url: *mut Object = msg_send![class!(NSURL), fileURLWithPath: ns_string];
+            if ns_url.is_null() {
+                return Err(PrintError::PrintError("Failed to create NSURL".to_string()));
+            }
+
+            let pdf_doc: *mut Object = msg_send![class!(PDFDocument), alloc];
+            let pdf_doc: *mut Object = msg_send![pdf_doc, initWithURL: ns_url];
+
+            if pdf_doc.is_null() {
+                return Err(PrintError::PrintError(
+                    "Failed to create PDFDocument".to_string(),
+                ));
+            }
+
+            let print_info: *mut Object = msg_send![class!(NSPrintInfo), sharedPrintInfo];
+
+            let pdf_view: *mut Object = msg_send![class!(PDFView), alloc];
+            let pdf_view: *mut Object = msg_send![pdf_view, init];
+
+            if pdf_view.is_null() {
+                let _: () = msg_send![pdf_doc, release];
+                return Err(PrintError::PrintError(
+                    "Failed to create PDFView".to_string(),
+                ));
+            }
+
+            let _: () = msg_send![pdf_view, setDocument: pdf_doc];
+
+            let print_op: *mut Object = msg_send![class!(NSPrintOperation), printOperationWithView: pdf_view
+                                                                            printInfo: print_info];
+
+            if print_op.is_null() {
+                let _: () = msg_send![pdf_view, release];
+                let _: () = msg_send![pdf_doc, release];
+                return Err(PrintError::PrintError(
+                    "Failed to create NSPrintOperation".to_string(),
+                ));
+            }
+
+            let _: () = msg_send![print_op, setShowsPrintPanel: true];
+            let _: () = msg_send![print_op, setShowsProgressPanel: true];
+
+            let _: () = msg_send![print_op, runOperation];
+
+            let _: () = msg_send![pdf_view, release];
+            let _: () = msg_send![pdf_doc, release];
+        }
+
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn show_native_print_dialog(_pdf_path: &PathBuf) -> Result<()> {
+        Err(PrintError::PrintError(
+            "Native print dialog not supported on this platform".to_string(),
+        ))
     }
 }
 
@@ -140,47 +221,11 @@ impl Printer for MacOSPrinter {
     }
 
     fn show_print_dialog(pdf_path: &PathBuf) -> Result<()> {
-        use std::process::Command;
-
-        let path_str = pdf_path
-            .to_str()
-            .ok_or_else(|| PrintError::PrintError("Invalid PDF path".to_string()))?;
-
-        // Try to open with Preview first
-        let script = format!(
-            r#"tell application "Preview" to open POSIX file "{}""#,
-            path_str.replace('"', "\"")
-        );
-
-        let output = Command::new("osascript").arg("-e").arg(&script).output();
-
-        if let Ok(output) = output {
-            if output.status.success() {
-                return Ok(());
-            }
-        }
-
-        // Fallback to using lp with default settings
-        let settings = PrintSettings::default();
-        Self::print_pdf(pdf_path, &settings, None)
+        Self::show_native_print_dialog(pdf_path)
     }
 
     fn show_print_preview(pdf_path: &PathBuf) -> Result<()> {
-        use std::process::Command;
-
-        // Open PDF in Preview app which has print preview capability
-        let result = Command::new("open")
-            .arg("-a")
-            .arg("Preview")
-            .arg(pdf_path)
-            .spawn();
-
-        if result.is_err() {
-            // Fallback: just open with default application
-            let _ = Command::new("open").arg(pdf_path).spawn();
-        }
-
-        Ok(())
+        Self::show_native_print_dialog(pdf_path)
     }
 }
 
